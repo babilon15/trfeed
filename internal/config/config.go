@@ -18,6 +18,14 @@ type Filter struct {
 	Label         string   `yaml:"label"`
 }
 
+func (f *Filter) GetTargetMode() string {
+	allowed := []string{"order", "random", "first"}
+	if slices.Contains(f.TargetMode, allowed) {
+		return f.TargetMode
+	}
+	return "order" // default
+}
+
 type Feed struct {
 	GetAll     bool     `yaml:"get_all"`
 	Paused     bool     `yaml:"paused"`
