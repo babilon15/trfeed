@@ -1,7 +1,8 @@
 package utils
 
 const (
-	FMode      = 0o644
-	DMode      = 0o755
-	torrentExt = ".torrent"
+	FMode       = 0o644
+	DMode       = 0o755
+	torrentExt  = ".torrent"
+	torrentMIME = "application/x-bittorrent"
 )

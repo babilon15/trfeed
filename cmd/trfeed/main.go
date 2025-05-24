@@ -1,10 +1,12 @@
 package main
 
 import (
+	"log"
+
 	"github.com/babilon15/trfeed/internal/places"
 )
 
 func main() {
-	places.Set()
+	log.SetFlags(0)
 	places.Checks()
 }

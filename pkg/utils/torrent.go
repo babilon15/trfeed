@@ -5,10 +5,9 @@ import (
 )
 
 const (
-	minTorrentSize int64 = 53687091200 // 50 gigabyte
+	minTorrentSize int64 = 53687091200 // 50 gigabytes
 )
 
-// Visszaadja a megadott torrent fájl alapján (path) a teljes letöltési méretét a torrentnek:
 func GetTorrentSize(path string) (int64, error) {
 	meta, metaErr := metainfo.LoadFromFile(path)
 	if metaErr != nil {
@@ -18,8 +17,6 @@ func GetTorrentSize(path string) (int64, error) {
 	return info.Length, infoErr
 }
 
-// Burkoló függvény a fentihez.
-// Ha nem állapítható meg a tényleges méret, akkor a fenti állandó értékét adja vissza.
 func GetTorrentEstSize(path string) int64 {
 	size, _ := GetTorrentSize(path)
 	if size <= 0 {

@@ -5,53 +5,39 @@ import (
 	"os"
 	"os/user"
 	"path"
-
-	"github.com/babilon15/trfeed/pkg/utils"
-	"golang.org/x/sys/unix"
 )
 
 const (
-	programDirEnvVarName     = "TRFEED_PROG_DIR"
-	programTempDirEnvVarName = "TRFEED_TEMP_DIR"
+	programDirName   = "trfeed"
+	configFileName   = "config.yml"
+	remnantsFileName = "remnants.yml"
 )
 
 var (
-	programDirName   string = "trfeed"
-	ProgramDirParent string = ""
-	ConfigFile       string = path.Join(programDirName, "config.yaml")
-	RemnantsFile     string = path.Join(programDirName, "remnants.yaml")
-	ProgramTempDir   string = path.Join("/", "tmp", programDirName)
+	programDir     string = ""
+	ConfigFile     string = ""
+	RemnantsFile   string = ""
+	ProgramTempDir string = path.Join("/", "tmp", programDirName)
 )
 
-func Set() {
-	cUsr, cUsrErr := user.Current()
-	if cUsrErr != nil {
-		log.Fatalf(cUsrErr.Error())
-	}
-
-	programDirEnvVar := os.Getenv(programDirEnvVarName)
-	if programDirEnvVar != "" {
-		ProgramDirParent = programDirEnvVar
-	} else {
-		ProgramDirParent = path.Join(cUsr.HomeDir, ".config")
-	}
-
-	programTempDirEnvVar := os.Getenv(programTempDirEnvVarName)
-	if programTempDirEnvVar != "" {
-		ProgramTempDir = programTempDirEnvVar
-	}
-}
-
-func GetAbs(p string) string {
-	return path.Join(ProgramDirParent, p)
-}
-
 func Checks() {
-	if err := unix.Access(ProgramDirParent, unix.W_OK); err != nil {
-		log.Fatalf(err.Error())
+	// Get the current user:
+	currentUser, currentUserErr := user.Current()
+	if currentUserErr != nil {
+		log.Fatalf(currentUserErr.Error())
 	}
 
-	if err := os.MkdirAll(GetAbs(programDirName), utils.DMode); err != nil {
+	if currentUser.Uid == "0" {
+		log.Fatalf("Oh, don't be silly. It's completely unnecessary to do this. ;)")
+	}
+
+	// Update those variables:
+	programDir = path.Join(currentUser.HomeDir, ".config", programDirName)
+	ConfigFile = path.Join(programDir, configFileName)
+	RemnantsFile = path.Join(programDir, remnantsFileName)
+
+	// Checks:
+	if err := os.MkdirAll(ProgramTempDir, 0o700); err != nil {
 		log.Fatalf(err.Error())
 	}
 }
