@@ -4,9 +4,9 @@ go 1.24.1
 
 require (
 	github.com/anacrolix/torrent v1.58.1
+	github.com/goccy/go-yaml v1.18.0
 	github.com/hekmon/transmissionrpc/v3 v3.0.0
 	golang.org/x/text v0.23.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

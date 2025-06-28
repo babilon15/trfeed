@@ -1,11 +1,13 @@
 package utils
 
 import (
+	"net/url"
+
 	"github.com/anacrolix/torrent/metainfo"
 )
 
 const (
-	minTorrentSize int64 = 53687091200 // 50 gigabytes
+	MinTorrentSize int64 = 53687091200 // 50 gigabytes
 )
 
 func GetTorrentSize(path string) (int64, error) {
@@ -20,7 +22,13 @@ func GetTorrentSize(path string) (int64, error) {
 func GetTorrentEstSize(path string) int64 {
 	size, _ := GetTorrentSize(path)
 	if size <= 0 {
-		return minTorrentSize
+		return MinTorrentSize
 	}
 	return size
+}
+
+// If the link is a magnet link, we do not check the size of the torrent. (MinTorrentSize)
+func IsMagnetLink(link string) bool {
+	u, err := url.ParseRequestURI(link)
+	return err == nil && u.Scheme == "magnet"
 }

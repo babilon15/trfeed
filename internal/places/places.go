@@ -9,17 +9,19 @@ import (
 
 const (
 	programDirName   = "trfeed"
+	torrentsDirName  = "torrents"
 	configFileName   = "config.yml"
 	remnantsFileName = "remnants.yml"
 )
 
 var (
-	programDir     string = ""
-	ConfigFile     string = ""
-	RemnantsFile   string = ""
-	ProgramTempDir string = path.Join("/", "tmp", programDirName)
+	programDir   string = ""
+	ConfigFile   string = ""
+	RemnantsFile string = ""
+	TorrentsDir  string = ""
 )
 
+// Call it before using the variables!
 func Checks() {
 	// Get the current user:
 	currentUser, currentUserErr := user.Current()
@@ -35,9 +37,11 @@ func Checks() {
 	programDir = path.Join(currentUser.HomeDir, ".config", programDirName)
 	ConfigFile = path.Join(programDir, configFileName)
 	RemnantsFile = path.Join(programDir, remnantsFileName)
+	TorrentsDir = path.Join(programDir, torrentsDirName)
 
-	// Checks:
-	if err := os.MkdirAll(ProgramTempDir, 0o700); err != nil {
+	// CHECKS:
+
+	if err := os.MkdirAll(TorrentsDir, 0o700); err != nil {
 		log.Fatalf(err.Error())
 	}
 }

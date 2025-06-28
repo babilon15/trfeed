@@ -1,1 +1,3 @@
 package scan
+
+func Scan() {}
