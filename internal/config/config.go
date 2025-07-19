@@ -1,50 +1,30 @@
 package config
 
-import (
-	"github.com/babilon15/trfeed/pkg/utils"
-)
-
-const (
-	WAITSEC_MIN = 10   // Because we don't want to overload the servers.
-	WAITSEC_MAX = 3600 // To prevent missing feed items.
-)
-
-// 'target_dirs' order:
-// --------------------
-// 1. Filter
-// 2. Feed
-// 3. Program default
-// 4. Client default
-
 type Filter struct {
-	CaseSensitive bool     `yaml:"case_sensitive"`
-	Diacritics    bool     `yaml:"diacritics"`
-	Paused        bool     `yaml:"paused"`
-	TargetDirs    []string `yaml:"target_dirs"`
-	Include       string   `yaml:"include"`
-	Exclude       string   `yaml:"exclude"`
-	Label         string   `yaml:"label"`
+	Include   string `yaml:"include"`
+	Exclude   string `yaml:"exclude"`
+	Label     string `yaml:"label"`
+	RelDir    string `yaml:"rel_dir"`
+	TargetDir string `yaml:"target_dir"`
+	Literally bool   `yaml:"literally"`
+	Paused    bool   `yaml:"paused"`
 }
 
 type Feed struct {
-	GetAll     bool     `yaml:"get_all"`
-	Paused     bool     `yaml:"paused"`
-	LastNum    uint32   `yaml:"_last_num"` // FNV - 32-bit
-	Url        string   `yaml:"url"`
-	Label      string   `yaml:"label"`
-	TargetDirs []string `yaml:"target_dirs"`
-	Filters    []Filter `yaml:"filters"`
+	Filters          []Filter `yaml:"filters"`
+	FiltersViaLabels []string `yaml:"filters_via_labels"`
+	Url              string   `yaml:"url"`
+	Label            string   `yaml:"label"`
+	RelDir           string   `yaml:"rel_dir"`
+	TargetDir        string   `yaml:"target_dir"`
+	LastUniqueNum    uint32   `yaml:"last_unique_num"`
+	GetAll           bool     `yaml:"get_all"`
+	Paused           bool     `yaml:"paused"`
 }
 
 type Config struct {
-	NoLabels         bool     `yaml:"no_labels"`
-	NoFreeSpaceCheck bool     `yaml:"no_free_space_check"`
-	WaitSec          int      `yaml:"wait_sec"`
-	TrEndpoint       string   `yaml:"tr_endpoint"`
-	TargetDirs       []string `yaml:"target_dirs"`
-	Feeds            []Feed   `yaml:"feeds"`
-}
-
-func (c *Config) Checks() {
-	c.WaitSec = utils.Clamp(c.WaitSec, WAITSEC_MIN, WAITSEC_MAX)
+	Feeds     []Feed `yaml:"feeds"`
+	Host      string `yaml:"host"`
+	Auth      string `yaml:"auth"`
+	TargetDir string `yaml:"target_dir"`
 }

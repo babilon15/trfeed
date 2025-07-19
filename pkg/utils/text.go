@@ -2,15 +2,12 @@ package utils
 
 import (
 	"net/url"
-	"regexp"
 	"unicode"
 
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
 )
-
-func IsAlphanumLower(str string) bool { return regexp.MustCompile(`^[a-z0-9]*$`).MatchString(str) }
 
 func IsValidURL(rawURL string) bool {
 	_, err := url.ParseRequestURI(rawURL)

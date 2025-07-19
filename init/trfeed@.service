@@ -1,0 +1,18 @@
+[Unit]
+Description=trfeed
+After=network-online.target transmission.service
+
+[Service]
+Type=simple
+User=%i
+StateDirectory=trfeed
+StateDirectoryMode=0700
+WorkingDirectory=/var/lib/trfeed
+ExecStart=/usr/bin/trfeed
+Restart=on-failure
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
