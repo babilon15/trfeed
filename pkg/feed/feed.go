@@ -16,8 +16,6 @@ type Channel struct {
 	Item    []Item   `xml:"item"`
 }
 
-func (c *Channel) ItemsCount() int { return len(c.Item) }
-
 type Item struct {
 	XMLName     xml.Name `xml:"item"`
 	Title       string   `xml:"title"`
