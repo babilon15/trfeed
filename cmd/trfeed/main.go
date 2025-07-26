@@ -11,7 +11,7 @@ import (
 
 func main() {
 	if utils.IsSuperuserNow() {
-		fmt.Println("Do not run this program with superuser privileges.")
+		fmt.Println("do not run this program with superuser privileges")
 		os.Exit(1)
 	}
 

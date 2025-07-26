@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/babilon15/trfeed/internal/addtorrent"
 	"github.com/babilon15/trfeed/internal/config"
@@ -188,7 +189,30 @@ func Scan() {
 }
 
 func AddHits() {
-	for i := 0; i < len(hits); i++ {
-		fmt.Println(hits[i])
+	hitsLen := len(hits)
+	for i := hitsLen - 1; i >= 0; i-- {
+		err := addtorrent.AddTorrentWithRemote(
+			conf.Host,
+			conf.Auth,
+			hits[i].Resource,
+			hits[i].TargetDir,
+			hits[i].Labels,
+			hits[i].Paused,
+		)
+
+		if err == nil {
+			fmt.Println("torrent added successfully:", hits[i].Title)
+			hits.Remove(i)
+		} else {
+			fmt.Println("torrent could not be added:", hits[i].Title)
+		}
+
+		if hitsLen >= 10 {
+			time.Sleep(time.Millisecond * 500)
+		}
+	}
+
+	if err := utils.PutYAMLToFile(remnantsFile, &hits); err != nil {
+		fmt.Println(err)
 	}
 }

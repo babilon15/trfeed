@@ -1,0 +1,43 @@
+host: http://192.168.1.2:7777/transmission
+auth: admin:ooxahJa9aa5quuur8
+target_dir: /tmp/xyz
+feeds:
+  - url: https://ncore.pro/bookmarks/182c5d06b7d4624d64d499362fa9867a0
+    label: Alap BM
+    get_all: true
+  - url: https://ncore.pro/bookmarks/182c5d06b7d4624d64d499362fa9867a138061
+    label: Későbbre BM
+    get_all: true
+    paused: true
+  - url: https://ncore.pro/rss.php?key=041cef205adf0f36f20aab5d8010b720
+    label: nCore Feed
+    #get_all: true
+    filters_via_labels:
+      - Ahsoka
+      - Mandalorian
+      - SNW
+    filters:
+      - include: Asimov e-Book HUN
+        paused: true
+      - include: Yabani 720p
+        rel_dir: Török sorozatok
+      - include: Yali Capkini 720p
+        rel_dir: Török sorozatok
+  - url: https://ncore.pro/bookmarks/182c5d06b7d4624d64d499362fa9867a138063
+    label: nCore eKönyv
+    target_dir: /mnt/1terabyte_RAID1/eKönyv
+    get_all: true
+    paused: true
+filters:
+  - label: Ahsoka
+    include: Ahsoka 1080p
+    exclude: HDR
+    rel_dir: Star Wars/Sorozat
+  - label: Mandalorian
+    include: Mandalorian Grogu 1080p
+    exclude: HDR
+    rel_dir: Star Wars/Filmek
+  - label: SNW
+    include: Star Trek Strange New Worlds 1080p
+    exclude: HDR
+    rel_dir: Star Trek

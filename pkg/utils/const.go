@@ -1,6 +1,6 @@
 package utils
 
 const (
-	FMode = 0o600
-	DMode = 0o700
+	FMode = 0o666
+	DMode = 0o777
 )
