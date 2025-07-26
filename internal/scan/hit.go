@@ -2,6 +2,7 @@ package scan
 
 type Hit struct {
 	Labels    []string `yaml:"labels"`
+	Title     string   `yaml:"title"`
 	Resource  string   `yaml:"resource"`
 	TargetDir string   `yaml:"target_dir"`
 	UniqueNum uint32   `yaml:"unique_num"`
@@ -17,4 +18,13 @@ func (h *Hits) Remove(index int) {
 	}
 	(*h)[index] = (*h)[len(*h)-1]
 	*h = (*h)[:len(*h)-1]
+}
+
+func (h *Hits) IndexByUniqueNum(u uint32) int {
+	for i := 1; i < len(*h); i++ {
+		if u == (*h)[i].UniqueNum {
+			return i
+		}
+	}
+	return -1
 }

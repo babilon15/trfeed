@@ -22,3 +22,14 @@ func RemoveDiacritics(str string) (string, error) {
 	}
 	return res, nil
 }
+
+func FilterEmptyStrings(in []string) []string {
+	n := 0
+	for i := 0; i < len(in); i++ {
+		if in[i] != "" {
+			in[n] = in[i]
+			n++
+		}
+	}
+	return in[:n]
+}

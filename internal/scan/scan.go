@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 
 	"github.com/babilon15/trfeed/internal/addtorrent"
 	"github.com/babilon15/trfeed/internal/config"
@@ -32,14 +33,14 @@ func init() {
 	}
 
 	if conf.TargetDir == "" {
-		fmt.Println("[Warn] target_dir is missing from", configFile)
+		fmt.Println("target_dir is missing from", configFile)
 
 		dd := addtorrent.GetDownDirWithRemote(conf.Host, conf.Auth)
 		if dd == "" {
-			fmt.Println("[Error] The client's default download directory is unknown. The host may be unavailable.")
+			fmt.Println("the client's default download directory is unknown; the host may be unavailable")
 		} else {
 			conf.TargetDir = dd
-			fmt.Println("[Info] New 'target_dir' directory from the client:", dd)
+			fmt.Println("new 'target_dir' directory from the client:", dd)
 		}
 	}
 }
@@ -59,11 +60,27 @@ func GetFeed(url string, target any) error {
 	return xml.Unmarshal(body, target)
 }
 
+func handleTargetDirs(dirs ...string) string {
+	for _, d := range dirs {
+		if d == "" {
+			continue
+		}
+
+		err := os.MkdirAll(d, 0o777)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			return d
+		}
+	}
+	return ""
+}
+
 func Scan() {
 	feedsLen := len(conf.Feeds)
 
 	if feedsLen == 0 {
-		fmt.Println("[Warn] No feeds could be found in the config file:", configFile)
+		fmt.Println("no feeds could be found in the config file:", configFile)
 	}
 
 	for i := 0; i < feedsLen; i++ {
@@ -72,7 +89,7 @@ func Scan() {
 		}
 
 		if !utils.IsValidURL(conf.Feeds[i].Url) {
-			fmt.Println("Invalid URL:", conf.Feeds[i].Url)
+			fmt.Println("invalid URL:", conf.Feeds[i].Url)
 			continue
 		}
 
@@ -83,14 +100,43 @@ func Scan() {
 			continue
 		}
 
+		var firstUniqueNum uint32
+
 	outer:
-		for _, v := range currentFeed.Channel.Item {
+		for j, v := range currentFeed.Channel.Item {
+			currentUniqueNum := v.GetUniqueNum()
+			if j == 0 {
+				firstUniqueNum = currentUniqueNum
+			}
+
+			if conf.Feeds[i].LastUniqueNum != 0 {
+				if conf.Feeds[i].LastUniqueNum == currentUniqueNum {
+					conf.Feeds[i].LastUniqueNum = firstUniqueNum
+					break
+				}
+			} else {
+				conf.Feeds[i].LastUniqueNum = firstUniqueNum
+			}
+
+			if hits.IndexByUniqueNum(currentUniqueNum) != -1 {
+				continue outer
+			}
+
 			// (1) own filters
 			for _, f := range conf.Feeds[i].Filters {
 				if f.Check(v.Title) {
 					// HIT!
-					fmt.Println("[Hit]", v.Title)
-					//
+					fmt.Println("hit:", v.Title)
+
+					hits = append(hits, Hit{
+						Labels:    utils.FilterEmptyStrings([]string{"trfeed", f.Label}),
+						Title:     v.Title,
+						Resource:  v.Link,
+						TargetDir: handleTargetDirs(f.TargetDir, conf.Feeds[i].TargetDir, conf.TargetDir),
+						UniqueNum: currentUniqueNum,
+						Paused:    f.Paused,
+					})
+
 					continue outer
 				}
 			}
@@ -104,19 +150,38 @@ func Scan() {
 
 				if currentFilter.Check(v.Title) {
 					// HIT!
-					fmt.Println("[Hit]", v.Title)
-					//
+					fmt.Println("hit:", v.Title)
+
+					hits = append(hits, Hit{
+						Labels:    utils.FilterEmptyStrings([]string{"trfeed", currentFilter.Label}),
+						Title:     v.Title,
+						Resource:  v.Link,
+						TargetDir: handleTargetDirs(currentFilter.TargetDir, conf.Feeds[i].TargetDir, conf.TargetDir),
+						UniqueNum: currentUniqueNum,
+						Paused:    currentFilter.Paused,
+					})
+
 					continue outer
 				}
 			}
 
 			// (3) get all
 			if conf.Feeds[i].GetAll {
-				//
+				fmt.Println("hit:", v.Title)
+
+				hits = append(hits, Hit{
+					Labels:    utils.FilterEmptyStrings([]string{"trfeed", conf.Feeds[i].Label}),
+					Title:     v.Title,
+					Resource:  v.Link,
+					TargetDir: handleTargetDirs(conf.Feeds[i].TargetDir, conf.TargetDir),
+					UniqueNum: currentUniqueNum,
+					Paused:    conf.Feeds[i].Paused,
+				})
 			}
 		}
 	}
 
+	// back up:
 	if err := utils.PutYAMLToFile(remnantsFile, &hits); err != nil {
 		fmt.Println(err)
 	}
