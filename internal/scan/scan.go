@@ -182,10 +182,13 @@ func Scan() {
 		}
 	}
 
-	// back up:
-	if err := utils.PutYAMLToFile(remnantsFile, &hits); err != nil {
-		fmt.Println(err)
+	if conf.ConfigOverwrite {
+		if err := utils.PutYAMLToFile(configFile, &conf); err != nil {
+			fmt.Println(err)
+		}
 	}
+
+	time.Sleep(time.Millisecond * 200)
 }
 
 func AddHits() {
@@ -207,7 +210,7 @@ func AddHits() {
 			fmt.Println("torrent could not be added:", hits[i].Title)
 		}
 
-		if hitsLen >= 10 {
+		if hitsLen >= 5 {
 			time.Sleep(time.Millisecond * 500)
 		}
 	}

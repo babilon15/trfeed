@@ -1,0 +1,77 @@
+feeds:
+    - filters: []
+      filters_via_labels: []
+      url: https://ncore.pro/bookmarks/182c5d06b7d4624d64d499362fa9867a0
+      label: Alap BM
+      target_dir: ""
+      last_unique_num: 451270324
+      get_all: true
+      paused: false
+    - filters: []
+      filters_via_labels: []
+      url: https://ncore.pro/bookmarks/182c5d06b7d4624d64d499362fa9867a138061
+      label: Későbbre BM
+      target_dir: /mnt/4terabyte/Torrent/Egyéb
+      last_unique_num: 3934304080
+      get_all: true
+      paused: true
+    - filters:
+          - include: Asimov e-Book HUN
+            exclude: ""
+            label: ""
+            target_dir: /mnt/1terabyte_RAID1/eKönyv
+            literally: false
+            paused: true
+          - include: Yabani 720p
+            exclude: ""
+            label: ""
+            target_dir: /mnt/4terabyte/Torrent/Török sorozatok
+            literally: false
+            paused: false
+          - include: Yali Capkini 720p
+            exclude: ""
+            label: ""
+            target_dir: /mnt/4terabyte/Torrent/Török sorozatok
+            literally: false
+            paused: false
+      filters_via_labels:
+          - Ahsoka
+          - Mandalorian
+          - SNW
+      url: https://ncore.pro/rss.php?key=041cef205adf0f36f20aab5d8010b720
+      label: nCore Feed
+      target_dir: ""
+      last_unique_num: 4113035877
+      get_all: false
+      paused: false
+    - filters: []
+      filters_via_labels: []
+      url: https://ncore.pro/bookmarks/182c5d06b7d4624d64d499362fa9867a138063
+      label: nCore eKönyv
+      target_dir: /mnt/1terabyte_RAID1/eKönyv
+      last_unique_num: 1343582887
+      get_all: true
+      paused: false
+filters:
+    - include: Ahsoka 1080p
+      exclude: HDR
+      label: Ahsoka
+      target_dir: /mnt/4terabyte/Torrent/Star Wars/Sorozat
+      literally: false
+      paused: false
+    - include: Mandalorian Grogu 1080p
+      exclude: HDR
+      label: Mandalorian
+      target_dir: /mnt/4terabyte/Torrent/Star Wars/Filmek
+      literally: false
+      paused: false
+    - include: Star Trek Strange New Worlds 1080p
+      exclude: HDR
+      label: SNW
+      target_dir: /mnt/4terabyte/Torrent/Star Trek
+      literally: false
+      paused: false
+host: http://127.0.0.1:7777/transmission
+auth: admin:ooxahJa9aa5quuur8
+target_dir: /mnt/4terabyte/Torrent
+config_overwrite: true
