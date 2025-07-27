@@ -17,47 +17,47 @@ type Filter struct {
 }
 
 func (f *Filter) Check(title string) bool {
-	include_words := strings.Fields(f.Include)
-	exclude_words := strings.Fields(f.Exclude)
+	includeWords := strings.Fields(f.Include)
+	excludeWords := strings.Fields(f.Exclude)
 
 	if !f.Literally {
-		for i := 0; i < len(include_words); i++ {
-			include_words[i] = strings.ToLower(include_words[i])
-			rd, err := utils.RemoveDiacritics(include_words[i])
+		for i := 0; i < len(includeWords); i++ {
+			includeWords[i] = strings.ToLower(includeWords[i])
+			rd, err := utils.RemoveDiacritics(includeWords[i])
 			if err != nil {
 				fmt.Println(err)
 			}
-			include_words[i] = rd
+			includeWords[i] = rd
 		}
 
-		for i := 0; i < len(exclude_words); i++ {
-			exclude_words[i] = strings.ToLower(exclude_words[i])
-			rd, err := utils.RemoveDiacritics(exclude_words[i])
+		for i := 0; i < len(excludeWords); i++ {
+			excludeWords[i] = strings.ToLower(excludeWords[i])
+			rd, err := utils.RemoveDiacritics(excludeWords[i])
 			if err != nil {
 				fmt.Println(err)
 			}
-			exclude_words[i] = rd
+			excludeWords[i] = rd
 		}
 
 		title = strings.ToLower(title)
 		title, _ = utils.RemoveDiacritics(title)
 	}
 
-	i_hit, e_hit := 0, 0
+	iHit, eHit := 0, 0
 
-	for _, v := range include_words {
+	for _, v := range includeWords {
 		if strings.Contains(title, v) {
-			i_hit++
+			iHit++
 		}
 	}
 
-	for _, v := range exclude_words {
+	for _, v := range excludeWords {
 		if strings.Contains(title, v) {
-			e_hit++
+			eHit++
 		}
 	}
 
-	return i_hit == len(include_words) && e_hit == 0
+	return iHit == len(includeWords) && eHit == 0
 }
 
 type Feed struct {
@@ -72,11 +72,12 @@ type Feed struct {
 }
 
 type Config struct {
-	Feeds     []Feed   `yaml:"feeds"`
-	Filters   []Filter `yaml:"filters"`
-	Host      string   `yaml:"host"`
-	Auth      string   `yaml:"auth"`
-	TargetDir string   `yaml:"target_dir"` // last case
+	Feeds           []Feed   `yaml:"feeds"`
+	Filters         []Filter `yaml:"filters"`
+	Host            string   `yaml:"host"`
+	Auth            string   `yaml:"auth"`
+	TargetDir       string   `yaml:"target_dir"` // last case
+	ConfigOverwrite bool     `yaml:"config_overwrite"`
 }
 
 func (c *Config) GetFilterByLabel(label string) Filter {

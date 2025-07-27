@@ -16,10 +16,16 @@ func GetYAMLFromFile(path string, target any) error {
 }
 
 func PutYAMLToFile(path string, obj any) error {
-	b, bErr := yaml.Marshal(obj)
+	b, bErr := yaml.MarshalWithOptions(
+		obj,
+		yaml.Indent(4),
+		yaml.IndentSequence(true),
+	)
+
 	if bErr != nil {
 		return bErr
 	}
+
 	err := os.WriteFile(path, b, FMode)
 	return err
 }
