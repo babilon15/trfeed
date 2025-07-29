@@ -2,13 +2,12 @@ package scan
 
 import (
 	"encoding/xml"
-	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
-	"time"
+	"strconv"
 
-	"github.com/babilon15/trfeed/internal/addtorrent"
 	"github.com/babilon15/trfeed/internal/config"
 	"github.com/babilon15/trfeed/pkg/feed"
 	"github.com/babilon15/trfeed/pkg/utils"
@@ -18,33 +17,6 @@ const (
 	configFile   = "config.yaml"
 	remnantsFile = "remnants.yaml"
 )
-
-var (
-	hits Hits
-	conf config.Config
-)
-
-func init() {
-	if err := utils.GetYAMLFromFile(remnantsFile, &hits); err != nil {
-		fmt.Println(err)
-	}
-
-	if err := utils.GetYAMLFromFile(configFile, &conf); err != nil {
-		fmt.Println(err)
-	}
-
-	if conf.TargetDir == "" {
-		fmt.Println("target_dir is missing from", configFile)
-
-		dd := addtorrent.GetDownDirWithRemote(conf.Host, conf.Auth)
-		if dd == "" {
-			fmt.Println("the client's default download directory is unknown; the host may be unavailable")
-		} else {
-			conf.TargetDir = dd
-			fmt.Println("new 'target_dir' directory from the client:", dd)
-		}
-	}
-}
 
 func GetFeed(url string, target any) error {
 	resp, respErr := http.Get(url)
@@ -67,9 +39,9 @@ func handleTargetDirs(dirs ...string) string {
 			continue
 		}
 
-		err := os.MkdirAll(d, 0o777)
+		err := os.MkdirAll(d, utils.DMode)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		} else {
 			return d
 		}
@@ -77,145 +49,76 @@ func handleTargetDirs(dirs ...string) string {
 	return ""
 }
 
-func Scan() {
-	feedsLen := len(conf.Feeds)
-
-	if feedsLen == 0 {
-		fmt.Println("no feeds could be found in the config file:", configFile)
-	}
-
-	for i := 0; i < feedsLen; i++ {
-		if !conf.Feeds[i].GetAll && len(conf.Feeds[i].Filters) == 0 && len(conf.Feeds[i].FiltersViaLabels) == 0 {
-			continue
-		}
-
-		if !utils.IsValidURL(conf.Feeds[i].Url) {
-			fmt.Println("invalid URL:", conf.Feeds[i].Url)
-			continue
-		}
-
-		var currentFeed feed.Feed
-
-		if err := GetFeed(conf.Feeds[i].Url, &currentFeed); err != nil {
-			fmt.Println(err)
-			continue
-		}
-
-		var firstUniqueNum uint32
-
-	outer:
-		for j, v := range currentFeed.Channel.Item {
-			currentUniqueNum := v.GetUniqueNum()
-			if j == 0 {
-				firstUniqueNum = currentUniqueNum
-			}
-
-			if conf.Feeds[i].LastUniqueNum != 0 {
-				if conf.Feeds[i].LastUniqueNum == currentUniqueNum {
-					conf.Feeds[i].LastUniqueNum = firstUniqueNum
-					break
-				}
-			} else {
-				conf.Feeds[i].LastUniqueNum = firstUniqueNum
-			}
-
-			if hits.IndexByUniqueNum(currentUniqueNum) != -1 {
-				continue outer
-			}
-
-			// (1) own filters
-			for _, f := range conf.Feeds[i].Filters {
-				if f.Check(v.Title) {
-					// HIT!
-					fmt.Println("hit:", v.Title)
-
-					hits = append(hits, Hit{
-						Labels:    utils.FilterEmptyStrings([]string{"trfeed", f.Label}),
-						Title:     v.Title,
-						Resource:  v.Link,
-						TargetDir: handleTargetDirs(f.TargetDir, conf.Feeds[i].TargetDir, conf.TargetDir),
-						UniqueNum: currentUniqueNum,
-						Paused:    f.Paused,
-					})
-
-					continue outer
-				}
-			}
-
-			// (2) filters via labels
-			for _, l := range conf.Feeds[i].FiltersViaLabels {
-				currentFilter := conf.GetFilterByLabel(l)
-				if config.IsFilterEmpty(currentFilter) {
-					continue
-				}
-
-				if currentFilter.Check(v.Title) {
-					// HIT!
-					fmt.Println("hit:", v.Title)
-
-					hits = append(hits, Hit{
-						Labels:    utils.FilterEmptyStrings([]string{"trfeed", currentFilter.Label}),
-						Title:     v.Title,
-						Resource:  v.Link,
-						TargetDir: handleTargetDirs(currentFilter.TargetDir, conf.Feeds[i].TargetDir, conf.TargetDir),
-						UniqueNum: currentUniqueNum,
-						Paused:    currentFilter.Paused,
-					})
-
-					continue outer
-				}
-			}
-
-			// (3) get all
-			if conf.Feeds[i].GetAll {
-				fmt.Println("hit:", v.Title)
-
-				hits = append(hits, Hit{
-					Labels:    utils.FilterEmptyStrings([]string{"trfeed", conf.Feeds[i].Label}),
-					Title:     v.Title,
-					Resource:  v.Link,
-					TargetDir: handleTargetDirs(conf.Feeds[i].TargetDir, conf.TargetDir),
-					UniqueNum: currentUniqueNum,
-					Paused:    conf.Feeds[i].Paused,
-				})
-			}
-		}
-	}
-
-	if conf.ConfigOverwrite {
-		if err := utils.PutYAMLToFile(configFile, &conf); err != nil {
-			fmt.Println(err)
-		}
-	}
-
-	time.Sleep(time.Millisecond * 200)
+type Scanner struct {
+	Conf config.Config
+	Hits Hits
 }
 
-func AddHits() {
-	hitsLen := len(hits)
-	for i := hitsLen - 1; i >= 0; i-- {
-		err := addtorrent.AddTorrentWithRemote(
-			conf.Host,
-			conf.Auth,
-			hits[i].Resource,
-			hits[i].TargetDir,
-			hits[i].Labels,
-			hits[i].Paused,
-		)
-
-		if err == nil {
-			fmt.Println("torrent added successfully:", hits[i].Title)
-			hits.Remove(i)
-		} else {
-			fmt.Println("torrent could not be added:", hits[i].Title)
-		}
-
-		if hitsLen >= 5 {
-			time.Sleep(time.Millisecond * 500)
-		}
+func (s *Scanner) Init() {
+	if err := utils.GetYAMLFromFile(configFile, &s.Conf); err != nil {
+		log.Println(err)
 	}
 
-	if err := utils.PutYAMLToFile(remnantsFile, &hits); err != nil {
-		fmt.Println(err)
+	if err := utils.GetYAMLFromFile(remnantsFile, &s.Hits); err != nil {
+		log.Println(err)
+	}
+}
+
+func (s *Scanner) Save() {
+	if err := utils.PutYAMLToFile(configFile, &s.Conf); err != nil {
+		log.Println(err)
+	}
+
+	if err := utils.PutYAMLToFile(remnantsFile, &s.Hits); err != nil {
+		log.Println(err)
+	}
+}
+
+func (s *Scanner) checkHit(item *feed.Item) {
+	log.Println(item.Title)
+}
+
+func (s *Scanner) Run() {
+	if len(s.Conf.Feeds) == 0 {
+		log.Println("no feeds could be found in the config file:", configFile)
+		return
+	}
+
+	for i := 0; i < len(s.Conf.Feeds); i++ {
+		if !utils.IsValidURL(s.Conf.Feeds[i].Url) {
+			log.Println("invalid URL:", strconv.Quote(s.Conf.Feeds[i].Url))
+			continue
+		}
+
+		var currentFeed *feed.Feed
+
+		if err := GetFeed(s.Conf.Feeds[i].Url, &currentFeed); err != nil {
+			log.Println(err)
+			continue
+		}
+
+		if len(currentFeed.Channel.Item) == 0 {
+			continue
+		}
+
+		currentFirstUniqueNum := currentFeed.Channel.Item[0].GetUniqueNum()
+		lastItemFound := false
+
+		for j := 0; j < len(currentFeed.Channel.Item); j++ {
+			currentUniqueNum := currentFeed.Channel.Item[j].GetUniqueNum()
+			if currentUniqueNum == s.Conf.Feeds[i].LastUniqueNum {
+				lastItemFound = true
+				break
+			}
+			//***//
+			s.checkHit(&currentFeed.Channel.Item[j])
+			//***//
+		}
+
+		if !lastItemFound && s.Conf.Feeds[i].LastUniqueNum != 0 {
+			log.Println("the last checked item could not be found; it may have dropped from the feed")
+		}
+
+		s.Conf.Feeds[i].LastUniqueNum = currentFirstUniqueNum
 	}
 }
