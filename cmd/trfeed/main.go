@@ -15,9 +15,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	s := &scan.Scanner{}
+	s.Init()
+
 	for {
-		scan.Scan()
-		scan.AddHits()
-		time.Sleep(time.Second * 30)
+		s.Run()
+		if s.Conf.ConfigOverwrite {
+			s.Save()
+		}
+		time.Sleep(time.Second * 15)
 	}
 }
