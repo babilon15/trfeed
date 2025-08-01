@@ -23,6 +23,7 @@ func main() {
 		if s.Conf.ConfigOverwrite {
 			s.Save()
 		}
+		s.AddHits()
 		time.Sleep(time.Second * 15)
 	}
 }

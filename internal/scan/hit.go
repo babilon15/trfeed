@@ -28,5 +28,3 @@ func (h *Hits) IndexByUniqueNum(u uint32) int {
 	}
 	return -1
 }
-
-func (h *Hits) AddAll() int { return 0 }
