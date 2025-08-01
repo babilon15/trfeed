@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
+	"github.com/babilon15/trfeed/internal/addtorrent"
 	"github.com/babilon15/trfeed/internal/config"
 	"github.com/babilon15/trfeed/pkg/feed"
 	"github.com/babilon15/trfeed/pkg/utils"
@@ -74,8 +76,68 @@ func (s *Scanner) Save() {
 	}
 }
 
-func (s *Scanner) checkHit(item *feed.Item) {
-	log.Println(item.Title)
+func (s *Scanner) checkHit(item *feed.Item, feedIndex int) {
+	if s.Hits.IndexByUniqueNum(item.GetUniqueNum()) != -1 {
+		return
+	}
+
+	// (1) own filters
+	for i := 0; i < len(s.Conf.Feeds[feedIndex].Filters); i++ {
+		if s.Conf.Feeds[feedIndex].Filters[i].Check(item.Title) {
+			log.Println("hit:", item.Title)
+
+			s.Hits = append(s.Hits, Hit{
+				Labels:    utils.FilterEmptyStrings([]string{"trfeed", s.Conf.Feeds[feedIndex].Filters[i].Label}),
+				Title:     item.Title,
+				Resource:  item.Link,
+				TargetDir: handleTargetDirs(s.Conf.Feeds[feedIndex].Filters[i].TargetDir, s.Conf.Feeds[feedIndex].TargetDir, s.Conf.TargetDir),
+				UniqueNum: item.GetUniqueNum(),
+				Paused:    s.Conf.Feeds[feedIndex].Filters[i].Paused,
+			})
+
+			return
+		}
+	}
+
+	// (2) filters via labels
+	for i := 0; i < len(s.Conf.Feeds[feedIndex].FiltersViaLabels); i++ {
+		filter := s.Conf.GetFilterByLabel(s.Conf.Feeds[feedIndex].FiltersViaLabels[i])
+
+		if config.IsFilterEmpty(filter) {
+			continue
+		}
+
+		if filter.Check(item.Title) {
+			log.Println("hit:", item.Title)
+
+			s.Hits = append(s.Hits, Hit{
+				Labels:    utils.FilterEmptyStrings([]string{"trfeed", filter.Label}),
+				Title:     item.Title,
+				Resource:  item.Link,
+				TargetDir: handleTargetDirs(filter.TargetDir, s.Conf.Feeds[feedIndex].TargetDir, s.Conf.TargetDir),
+				UniqueNum: item.GetUniqueNum(),
+				Paused:    filter.Paused,
+			})
+
+			return
+		}
+	}
+
+	// (3) get all
+	if s.Conf.Feeds[feedIndex].GetAll {
+		log.Println("hit:", item.Title)
+
+		s.Hits = append(s.Hits, Hit{
+			Labels:    utils.FilterEmptyStrings([]string{"trfeed", s.Conf.Feeds[feedIndex].Label}),
+			Title:     item.Title,
+			Resource:  item.Link,
+			TargetDir: handleTargetDirs(s.Conf.Feeds[feedIndex].TargetDir, s.Conf.TargetDir),
+			UniqueNum: item.GetUniqueNum(),
+			Paused:    s.Conf.Feeds[feedIndex].Paused,
+		})
+
+		return
+	}
 }
 
 func (s *Scanner) Run() {
@@ -102,6 +164,7 @@ func (s *Scanner) Run() {
 		}
 
 		currentFirstUniqueNum := currentFeed.Channel.Item[0].GetUniqueNum()
+
 		lastItemFound := false
 
 		for j := 0; j < len(currentFeed.Channel.Item); j++ {
@@ -110,9 +173,8 @@ func (s *Scanner) Run() {
 				lastItemFound = true
 				break
 			}
-			//***//
-			s.checkHit(&currentFeed.Channel.Item[j])
-			//***//
+
+			s.checkHit(&currentFeed.Channel.Item[j], i)
 		}
 
 		if !lastItemFound && s.Conf.Feeds[i].LastUniqueNum != 0 {
@@ -120,5 +182,31 @@ func (s *Scanner) Run() {
 		}
 
 		s.Conf.Feeds[i].LastUniqueNum = currentFirstUniqueNum
+	}
+}
+
+func (s *Scanner) AddHits() {
+	hitsLen := len(s.Hits)
+
+	for i := hitsLen - 1; i >= 0; i-- {
+		err := addtorrent.AddTorrentWithRemote(
+			s.Conf.Host,
+			s.Conf.Auth,
+			s.Hits[i].Resource,
+			s.Hits[i].TargetDir,
+			s.Hits[i].Labels,
+			s.Hits[i].Paused,
+		)
+
+		if err == nil {
+			log.Println("torrent added successfully:", s.Hits[i].Title)
+			s.Hits.Remove(i)
+		} else {
+			log.Println("torrent could not be added:", s.Hits[i].Title)
+		}
+
+		if hitsLen >= 5 {
+			time.Sleep(time.Millisecond * 500)
+		}
 	}
 }
