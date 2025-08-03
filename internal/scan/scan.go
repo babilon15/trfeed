@@ -160,6 +160,7 @@ func (s *Scanner) Run() {
 		}
 
 		if len(currentFeed.Channel.Item) == 0 {
+			log.Println("no items could be found in the feed", "url:", strconv.Quote(s.Conf.Feeds[i].Url))
 			continue
 		}
 
@@ -178,10 +179,12 @@ func (s *Scanner) Run() {
 		}
 
 		if !lastItemFound && s.Conf.Feeds[i].LastUniqueNum != 0 {
-			log.Println("the last checked item could not be found; it may have dropped from the feed")
+			log.Println("the last checked item could not be found; it may have dropped from the feed;", "url:", strconv.Quote(s.Conf.Feeds[i].Url))
 		}
 
 		s.Conf.Feeds[i].LastUniqueNum = currentFirstUniqueNum
+
+		time.Sleep(time.Millisecond * 250)
 	}
 }
 
