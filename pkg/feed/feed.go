@@ -27,7 +27,7 @@ type Item struct {
 	UniqueNum   uint32
 }
 
-func (i *Item) ParsePubDate() (time.Time, error) { return time.Parse(i.PubDate, i.PubDate) }
+func (i *Item) ParsePubDate() (time.Time, error) { return time.Parse(time.RFC1123Z,i.PubDate) }
 
 func (i *Item) GetPubDate() string {
 	pubDate, err := i.ParsePubDate()
