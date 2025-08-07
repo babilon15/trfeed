@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+const (
+	customLayout = "Mon, 2 Jan 2006 15:04:05 -0700"
+)
+
 type Feed struct {
 	XMLName xml.Name `xml:"rss"`
 	Channel Channel  `xml:"channel"`
@@ -27,7 +31,7 @@ type Item struct {
 	UniqueNum   uint32
 }
 
-func (i *Item) ParsePubDate() (time.Time, error) { return time.Parse(time.RFC1123Z,i.PubDate) }
+func (i *Item) ParsePubDate() (time.Time, error) { return time.Parse(customLayout, i.PubDate) }
 
 func (i *Item) GetPubDate() string {
 	pubDate, err := i.ParsePubDate()
