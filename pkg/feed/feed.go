@@ -3,6 +3,7 @@ package feed
 import (
 	"encoding/xml"
 	"hash/fnv"
+	"log"
 	"time"
 )
 
@@ -27,6 +28,15 @@ type Item struct {
 }
 
 func (i *Item) ParsePubDate() (time.Time, error) { return time.Parse(time.RFC1123Z, i.PubDate) }
+
+func (i *Item) GetPubDate() string {
+	pubDate, err := i.ParsePubDate()
+	if err != nil {
+		log.Println(err)
+	}
+
+	return pubDate.Format(time.DateTime)
+}
 
 func (i *Item) GetUniqueNum() uint32 {
 	if i.UniqueNum != 0 {
