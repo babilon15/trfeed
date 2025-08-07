@@ -1,8 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"os"
+	"log"
 	"time"
 
 	"github.com/babilon15/trfeed/internal/scan"
@@ -11,8 +10,7 @@ import (
 
 func main() {
 	if utils.IsSuperuserNow() {
-		fmt.Println("do not run this program with superuser privileges")
-		os.Exit(1)
+		log.Fatalln("do not run this program with superuser privileges")
 	}
 
 	s := &scan.Scanner{}
@@ -20,10 +18,8 @@ func main() {
 
 	for {
 		s.Run()
-		if s.Conf.ConfigOverwrite {
-			s.Save()
-		}
+		s.Save()
 		s.AddHits()
-		time.Sleep(time.Second * 90)
+		time.Sleep(time.Minute)
 	}
 }

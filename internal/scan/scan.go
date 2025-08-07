@@ -67,8 +67,10 @@ func (s *Scanner) Init() {
 }
 
 func (s *Scanner) Save() {
-	if err := utils.PutYAMLToFile(configFile, &s.Conf); err != nil {
-		log.Println(err)
+	if s.Conf.ConfigOverwrite {
+		if err := utils.PutYAMLToFile(configFile, &s.Conf); err != nil {
+			log.Println(err)
+		}
 	}
 
 	if err := utils.PutYAMLToFile(remnantsFile, &s.Hits); err != nil {
@@ -84,10 +86,10 @@ func (s *Scanner) checkHit(item *feed.Item, feedIndex int) {
 	// (1) own filters
 	for i := 0; i < len(s.Conf.Feeds[feedIndex].Filters); i++ {
 		if s.Conf.Feeds[feedIndex].Filters[i].Check(item.Title) {
-			log.Println("hit:", item.Title)
+			log.Println("hit:", item.Title, "pub. date:", item.GetPubDate())
 
 			s.Hits = append(s.Hits, Hit{
-				Labels:    utils.FilterEmptyStrings([]string{"trfeed", s.Conf.Feeds[feedIndex].Filters[i].Label}),
+				Labels:    utils.FilterEmptyStrings([]string{s.Conf.Feeds[feedIndex].Filters[i].Label, s.Conf.Feeds[feedIndex].Label, "trfeed"}),
 				Title:     item.Title,
 				Resource:  item.Link,
 				TargetDir: handleTargetDirs(s.Conf.Feeds[feedIndex].Filters[i].TargetDir, s.Conf.Feeds[feedIndex].TargetDir, s.Conf.TargetDir),
@@ -108,10 +110,10 @@ func (s *Scanner) checkHit(item *feed.Item, feedIndex int) {
 		}
 
 		if filter.Check(item.Title) {
-			log.Println("hit:", item.Title)
+			log.Println("hit:", item.Title, "pub. date:", item.GetPubDate())
 
 			s.Hits = append(s.Hits, Hit{
-				Labels:    utils.FilterEmptyStrings([]string{"trfeed", filter.Label}),
+				Labels:    utils.FilterEmptyStrings([]string{filter.Label, s.Conf.Feeds[feedIndex].Label, "trfeed"}),
 				Title:     item.Title,
 				Resource:  item.Link,
 				TargetDir: handleTargetDirs(filter.TargetDir, s.Conf.Feeds[feedIndex].TargetDir, s.Conf.TargetDir),
@@ -125,10 +127,10 @@ func (s *Scanner) checkHit(item *feed.Item, feedIndex int) {
 
 	// (3) get all
 	if s.Conf.Feeds[feedIndex].GetAll {
-		log.Println("hit:", item.Title)
+		log.Println("hit:", item.Title, "pub. date:", item.GetPubDate())
 
 		s.Hits = append(s.Hits, Hit{
-			Labels:    utils.FilterEmptyStrings([]string{"trfeed", s.Conf.Feeds[feedIndex].Label}),
+			Labels:    utils.FilterEmptyStrings([]string{s.Conf.Feeds[feedIndex].Label, "trfeed"}),
 			Title:     item.Title,
 			Resource:  item.Link,
 			TargetDir: handleTargetDirs(s.Conf.Feeds[feedIndex].TargetDir, s.Conf.TargetDir),
