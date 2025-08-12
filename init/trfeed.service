@@ -1,6 +1,6 @@
 [Unit]
 Description=trfeed
-After=network-online.target transmission.service
+After=network-online.target
 
 [Service]
 Type=simple
@@ -9,7 +9,7 @@ StateDirectory=trfeed
 StateDirectoryMode=0770
 WorkingDirectory=/var/lib/trfeed
 ExecStart=/usr/local/bin/trfeed
-UMask=0007
+UMask=0002
 Restart=on-failure
 RestartSec=5s
 StandardOutput=journal
