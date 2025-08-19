@@ -1,7 +1,7 @@
 package config
 
 import (
-	"fmt"
+	"log"
 	"strings"
 
 	"github.com/babilon15/trfeed/pkg/utils"
@@ -25,7 +25,7 @@ func (f *Filter) Check(title string) bool {
 			includeWords[i] = strings.ToLower(includeWords[i])
 			rd, err := utils.RemoveDiacritics(includeWords[i])
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 			}
 			includeWords[i] = rd
 		}
@@ -34,7 +34,7 @@ func (f *Filter) Check(title string) bool {
 			excludeWords[i] = strings.ToLower(excludeWords[i])
 			rd, err := utils.RemoveDiacritics(excludeWords[i])
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 			}
 			excludeWords[i] = rd
 		}
@@ -66,7 +66,7 @@ type Feed struct {
 	Url              string   `yaml:"url"`
 	Label            string   `yaml:"label"`
 	TargetDir        string   `yaml:"target_dir"`
-	LastUniqueNum    uint32   `yaml:"last_unique_num"`
+	LastUniqueNum    uint64   `yaml:"last_unique_num"`
 	GetAll           bool     `yaml:"get_all"`
 	Paused           bool     `yaml:"paused"`
 }
@@ -76,8 +76,9 @@ type Config struct {
 	Filters         []Filter `yaml:"filters"`
 	Host            string   `yaml:"host"`
 	Auth            string   `yaml:"auth"`
-	TargetDir       string   `yaml:"target_dir"` // last case
+	TargetDir       string   `yaml:"target_dir"`
 	ConfigOverwrite bool     `yaml:"config_overwrite"`
+	PausedIfNoSpace bool     `yaml:"paused_if_no_space"`
 }
 
 func (c *Config) GetFilterByLabel(label string) Filter {

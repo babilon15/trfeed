@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	configFile   = "config.yaml"
-	remnantsFile = "remnants.yaml"
+	configFile       = "config.yaml"
+	remnantsFile     = "remnants.yaml"
+	minFreeDiskSpace = 16106127360
 )
 
 func GetFeed(url string, target any) error {

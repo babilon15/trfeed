@@ -28,7 +28,7 @@ type Item struct {
 	Description string   `xml:"description"`
 	Category    string   `xml:"category"`
 	PubDate     string   `xml:"pubDate"`
-	UniqueNum   uint32
+	UniqueNum   uint64
 }
 
 func (i *Item) ParsePubDate() (time.Time, error) { return time.Parse(customLayout, i.PubDate) }
@@ -42,14 +42,14 @@ func (i *Item) GetPubDate() string {
 	return pubDate.Format(time.DateTime)
 }
 
-func (i *Item) GetUniqueNum() uint32 {
+func (i *Item) GetUniqueNum() uint64 {
 	if i.UniqueNum != 0 {
 		return i.UniqueNum
 	}
 
-	n32 := fnv.New32()
-	n32.Write([]byte(i.Title + i.PubDate))
-	i.UniqueNum = n32.Sum32()
+	n64a := fnv.New64a()
+	n64a.Write([]byte(i.Title + i.PubDate))
+	i.UniqueNum = n64a.Sum64()
 
 	return i.UniqueNum
 }

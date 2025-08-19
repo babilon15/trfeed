@@ -5,7 +5,7 @@ type Hit struct {
 	Title     string   `yaml:"title"`
 	Resource  string   `yaml:"resource"`
 	TargetDir string   `yaml:"target_dir"`
-	UniqueNum uint32   `yaml:"unique_num"`
+	UniqueNum uint64   `yaml:"unique_num"`
 	Paused    bool     `yaml:"paused"`
 }
 
@@ -20,7 +20,7 @@ func (h *Hits) Remove(index int) {
 	*h = (*h)[:len(*h)-1]
 }
 
-func (h *Hits) IndexByUniqueNum(u uint32) int {
+func (h *Hits) IndexByUniqueNum(u uint64) int {
 	for i := 1; i < len(*h); i++ {
 		if u == (*h)[i].UniqueNum {
 			return i

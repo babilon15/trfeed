@@ -33,19 +33,19 @@ func binPrefix(bytes float64) (float64, string) {
 	return size, units[prefixNum]
 }
 
-func roundFloat(num float64, p int) float64 {
+func RoundFloat(num float64, p int) float64 {
 	ratio := math.Pow(10, float64(p))
 	return math.Round(num*ratio) / ratio
 }
 
 func GetPrefixSize(bytes int64) string {
 	size, unit := binPrefix(float64(bytes))
-	size = roundFloat(size, precision)
+	size = RoundFloat(size, precision)
 	return fmt.Sprintf("%g %s", size, unit)
 }
 
 func GetDecPrefixSize(bytes int64) string {
 	size, unit := decPrefix(float64(bytes))
-	size = roundFloat(size, precision)
+	size = RoundFloat(size, precision)
 	return fmt.Sprintf("%g %s", size, unit)
 }
