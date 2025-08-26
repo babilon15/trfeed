@@ -195,6 +195,12 @@ func (s *Scanner) AddHits() {
 	hitsLen := len(s.Hits)
 
 	for i := hitsLen - 1; i >= 0; i-- {
+		if s.Hits[i].TargetDir != "" {
+			if s.Conf.PausedIfNoSpace && !utils.CheckFreeSpace(s.Hits[i].TargetDir, utils.DefaultMargin) {
+				s.Hits[i].Paused = true
+			}
+		}
+
 		err := addtorrent.AddTorrentWithRemote(
 			s.Conf.Host,
 			s.Conf.Auth,
