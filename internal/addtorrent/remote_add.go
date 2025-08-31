@@ -23,9 +23,9 @@ func AddTorrentWithRemote(host, auth, resource, targetDir string, labels []strin
 	}
 
 	if paused {
-		args = append(args, "--start-paused")
+		args = append(args, "--stop")
 	} else {
-		args = append(args, "--no-start-paused")
+		args = append(args, "--start")
 	}
 
 	cmd := exec.Command("transmission-remote", args...)

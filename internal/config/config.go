@@ -77,6 +77,7 @@ type Config struct {
 	Host            string   `yaml:"host"`
 	Auth            string   `yaml:"auth"`
 	TargetDir       string   `yaml:"target_dir"`
+	NoSpaceMarginGB int64    `yaml:"no_space_margin_gb"`
 	ConfigOverwrite bool     `yaml:"config_overwrite"`
 	PausedIfNoSpace bool     `yaml:"paused_if_no_space"`
 }

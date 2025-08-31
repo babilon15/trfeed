@@ -65,6 +65,10 @@ func (s *Scanner) Init() {
 	if err := utils.GetYAMLFromFile(remnantsFile, &s.Hits); err != nil {
 		log.Println(err)
 	}
+
+	if s.Conf.NoSpaceMarginGB == 0 {
+		s.Conf.NoSpaceMarginGB = 50
+	}
 }
 
 func (s *Scanner) Save() {
@@ -196,7 +200,7 @@ func (s *Scanner) AddHits() {
 
 	for i := hitsLen - 1; i >= 0; i-- {
 		if s.Hits[i].TargetDir != "" {
-			if s.Conf.PausedIfNoSpace && !utils.CheckFreeSpace(s.Hits[i].TargetDir, utils.DefaultMargin) {
+			if s.Conf.PausedIfNoSpace && !utils.CheckFreeSpace(s.Hits[i].TargetDir, s.Conf.NoSpaceMarginGB*1073741824) {
 				s.Hits[i].Paused = true
 			}
 		}

@@ -8,10 +8,6 @@ import (
 	"github.com/babilon15/trfeed/pkg/prefixes"
 )
 
-const (
-	DefaultMargin = 53687091200 // 50 GiB
-)
-
 func CheckFreeSpace(path string, margins ...int64) bool {
 	var margin int64
 	for _, v := range margins {
@@ -24,7 +20,12 @@ func CheckFreeSpace(path string, margins ...int64) bool {
 	avai := usage.Available()
 
 	if (avai - margin) <= 0 {
-		log.Println("not enough space:", strconv.Quote(path), "size:", prefixes.GetPrefixSize(size), "available:", prefixes.GetPrefixSize(avai), "needed:", prefixes.GetPrefixSize(margin))
+		log.Println("not enough space:", strconv.Quote(path),
+			"size:", prefixes.GetPrefixSize(size),
+			"available:", prefixes.GetPrefixSize(avai),
+			"needed:", prefixes.GetPrefixSize(margin),
+		)
+
 		return false // nok
 	}
 
