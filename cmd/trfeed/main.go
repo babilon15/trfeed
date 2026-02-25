@@ -18,8 +18,8 @@ func main() {
 
 	for {
 		s.Run()
-		s.Save()
 		s.AddHits()
+		s.Save()
 		time.Sleep(time.Minute)
 	}
 }

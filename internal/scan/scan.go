@@ -16,9 +16,9 @@ import (
 )
 
 const (
-	configFile       = "config.yaml"
-	remnantsFile     = "remnants.yaml"
-	minFreeDiskSpace = 16106127360
+	configFile   = "config.yaml"
+	remnantsFile = "remnants.yaml"
+	lastidsFile  = "lastids.yaml"
 )
 
 func GetFeed(url string, target any) error {
@@ -53,8 +53,9 @@ func handleTargetDirs(dirs ...string) string {
 }
 
 type Scanner struct {
-	Conf config.Config
-	Hits Hits
+	Conf    config.Config
+	LastIDs LastIDs
+	Hits    Hits
 }
 
 func (s *Scanner) Init() {
@@ -66,30 +67,36 @@ func (s *Scanner) Init() {
 		log.Println(err)
 	}
 
+	if err := utils.GetYAMLFromFile(lastidsFile, &s.LastIDs); err != nil {
+		log.Println(err)
+	}
+
 	if s.Conf.NoSpaceMarginGB == 0 {
 		s.Conf.NoSpaceMarginGB = 50
 	}
 }
 
 func (s *Scanner) Save() {
-	if s.Conf.ConfigOverwrite {
-		if err := utils.PutYAMLToFile(configFile, &s.Conf); err != nil {
-			log.Println(err)
-		}
+	if err := utils.PutYAMLToFile(remnantsFile, &s.Hits); err != nil {
+		log.Println(err)
 	}
 
-	if err := utils.PutYAMLToFile(remnantsFile, &s.Hits); err != nil {
+	if err := utils.PutYAMLToFile(lastidsFile, &s.LastIDs); err != nil {
 		log.Println(err)
 	}
 }
 
-func (s *Scanner) checkHit(item *feed.Item, feedIndex int) {
+func (s *Scanner) checkHit(item *feed.Item, feedIndex int, noGlobalFilters bool) {
 	if s.Hits.IndexByUniqueNum(item.GetUniqueNum()) != -1 {
 		return
 	}
 
-	// (1) own filters
+	// (1) OWN FILTERS
 	for i := 0; i < len(s.Conf.Feeds[feedIndex].Filters); i++ {
+		if s.Conf.Feeds[feedIndex].Filters[i].Disabled {
+			continue
+		}
+
 		if s.Conf.Feeds[feedIndex].Filters[i].Check(item.Title) {
 			log.Println("hit:", strconv.Quote(item.Title), "pub. date:", item.GetPubDate())
 
@@ -106,11 +113,11 @@ func (s *Scanner) checkHit(item *feed.Item, feedIndex int) {
 		}
 	}
 
-	// (2) filters via labels
+	// (2) FILTERS VIA LABELS
 	for i := 0; i < len(s.Conf.Feeds[feedIndex].FiltersViaLabels); i++ {
 		filter := s.Conf.GetFilterByLabel(s.Conf.Feeds[feedIndex].FiltersViaLabels[i])
 
-		if config.IsFilterEmpty(filter) {
+		if config.IsFilterEmpty(filter) || filter.Disabled {
 			continue
 		}
 
@@ -123,14 +130,38 @@ func (s *Scanner) checkHit(item *feed.Item, feedIndex int) {
 				Resource:  item.Link,
 				TargetDir: handleTargetDirs(filter.TargetDir, s.Conf.Feeds[feedIndex].TargetDir, s.Conf.TargetDir),
 				UniqueNum: item.GetUniqueNum(),
-				Paused:    filter.Paused,
+				Paused:    filter.Paused, // IMPORTANT!
 			})
 
 			return
 		}
 	}
 
-	// (3) get all
+	// (3) GLOBAL
+	if !noGlobalFilters {
+		for i := 0; i < len(s.Conf.Filters); i++ {
+			if s.Conf.Filters[i].Disabled {
+				continue
+			}
+
+			if s.Conf.Filters[i].Check(item.Title) {
+				log.Println("hit:", strconv.Quote(item.Title), "pub. date:", item.GetPubDate())
+
+				s.Hits = append(s.Hits, Hit{
+					Labels:    utils.FilterEmptyStrings([]string{s.Conf.Filters[i].Label, s.Conf.Feeds[feedIndex].Label, "trfeed"}),
+					Title:     item.Title,
+					Resource:  item.Link,
+					TargetDir: handleTargetDirs(s.Conf.Filters[i].TargetDir, s.Conf.Feeds[feedIndex].TargetDir, s.Conf.TargetDir),
+					UniqueNum: item.GetUniqueNum(),
+					Paused:    s.Conf.Filters[i].Paused,
+				})
+
+				return
+			}
+		}
+	}
+
+	// (4) GET ALL
 	if s.Conf.Feeds[feedIndex].GetAll {
 		log.Println("hit:", strconv.Quote(item.Title), "pub. date:", item.GetPubDate())
 
@@ -175,21 +206,23 @@ func (s *Scanner) Run() {
 
 		lastItemFound := false
 
+		lastID := s.LastIDs.GetLastIDByUrl(s.Conf.Feeds[i].Url)
+
 		for j := 0; j < len(currentFeed.Channel.Item); j++ {
 			currentUniqueNum := currentFeed.Channel.Item[j].GetUniqueNum()
-			if currentUniqueNum == s.Conf.Feeds[i].LastUniqueNum {
+			if currentUniqueNum == lastID {
 				lastItemFound = true
 				break
 			}
 
-			s.checkHit(&currentFeed.Channel.Item[j], i)
+			s.checkHit(&currentFeed.Channel.Item[j], i, s.Conf.Feeds[i].NoGlobalFilters)
 		}
 
-		if !lastItemFound && s.Conf.Feeds[i].LastUniqueNum != 0 {
+		if !lastItemFound && lastID != 0 {
 			log.Println("the last checked item could not be found; it may have dropped from the feed;", "url:", strconv.Quote(s.Conf.Feeds[i].Url))
 		}
 
-		s.Conf.Feeds[i].LastUniqueNum = currentFirstUniqueNum
+		s.LastIDs.SetLastIDByUrl(s.Conf.Feeds[i].Url, currentFirstUniqueNum)
 
 		time.Sleep(time.Millisecond * 250)
 	}
@@ -215,10 +248,10 @@ func (s *Scanner) AddHits() {
 		)
 
 		if err == nil {
-			log.Println("torrent added successfully:", s.Hits[i].Title)
+			log.Println("torrent added successfully:", strconv.Quote(s.Hits[i].Title))
 			s.Hits.Remove(i)
 		} else {
-			log.Println("torrent could not be added:", s.Hits[i].Title)
+			log.Println("torrent could not be added:", strconv.Quote(s.Hits[i].Title))
 		}
 
 		if hitsLen >= 5 {

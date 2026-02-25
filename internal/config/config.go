@@ -14,6 +14,7 @@ type Filter struct {
 	TargetDir string `yaml:"target_dir"`
 	Literally bool   `yaml:"literally"`
 	Paused    bool   `yaml:"paused"`
+	Disabled  bool   `yaml:"disabled"`
 }
 
 func (f *Filter) Check(title string) bool {
@@ -66,19 +67,18 @@ type Feed struct {
 	Url              string   `yaml:"url"`
 	Label            string   `yaml:"label"`
 	TargetDir        string   `yaml:"target_dir"`
-	LastUniqueNum    uint64   `yaml:"last_unique_num"`
 	GetAll           bool     `yaml:"get_all"`
 	Paused           bool     `yaml:"paused"`
+	NoGlobalFilters  bool     `yaml:"no_global_filters"`
 }
 
 type Config struct {
 	Feeds           []Feed   `yaml:"feeds"`
-	Filters         []Filter `yaml:"filters"`
+	Filters         []Filter `yaml:"filters"` // global
 	Host            string   `yaml:"host"`
 	Auth            string   `yaml:"auth"`
 	TargetDir       string   `yaml:"target_dir"`
 	NoSpaceMarginGB int64    `yaml:"no_space_margin_gb"`
-	ConfigOverwrite bool     `yaml:"config_overwrite"`
 	PausedIfNoSpace bool     `yaml:"paused_if_no_space"`
 }
 
