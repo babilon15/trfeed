@@ -8,13 +8,14 @@ import (
 )
 
 type Filter struct {
-	Include   string `yaml:"include"`
-	Exclude   string `yaml:"exclude"`
-	Label     string `yaml:"label"`
-	TargetDir string `yaml:"target_dir"`
-	Literally bool   `yaml:"literally"`
-	Paused    bool   `yaml:"paused"`
-	Disabled  bool   `yaml:"disabled"`
+	TargetDirs []string `yaml:"target_dirs"`
+	RelPath    string   `yaml:"rel_path"`
+	Include    string   `yaml:"include"`
+	Exclude    string   `yaml:"exclude"`
+	Label      string   `yaml:"label"`
+	Literally  bool     `yaml:"literally"`
+	Paused     bool     `yaml:"paused"`
+	Disabled   bool     `yaml:"disabled"`
 }
 
 func (f *Filter) Check(title string) bool {
@@ -64,22 +65,25 @@ func (f *Filter) Check(title string) bool {
 type Feed struct {
 	Filters          []Filter `yaml:"filters"`
 	FiltersViaLabels []string `yaml:"filters_via_labels"`
+	TargetDirs       []string `yaml:"target_dirs"`
+	RelPath          string   `yaml:"rel_path"`
 	Url              string   `yaml:"url"`
 	Label            string   `yaml:"label"`
-	TargetDir        string   `yaml:"target_dir"`
 	GetAll           bool     `yaml:"get_all"`
 	Paused           bool     `yaml:"paused"`
 	NoGlobalFilters  bool     `yaml:"no_global_filters"`
 }
 
 type Config struct {
-	Feeds           []Feed   `yaml:"feeds"`
-	Filters         []Filter `yaml:"filters"` // global
-	Host            string   `yaml:"host"`
-	Auth            string   `yaml:"auth"`
-	TargetDir       string   `yaml:"target_dir"`
-	NoSpaceMarginGB int64    `yaml:"no_space_margin_gb"`
-	PausedIfNoSpace bool     `yaml:"paused_if_no_space"`
+	Feeds            []Feed   `yaml:"feeds"`
+	Filters          []Filter `yaml:"filters"` // GLOBAL!
+	TargetDirs       []string `yaml:"target_dirs"`
+	RelPath          string   `yaml:"rel_path"`
+	Host             string   `yaml:"host"`
+	Auth             string   `yaml:"auth"`
+	NoSpaceMarginGB  int64    `yaml:"no_space_margin_gb"`
+	PausedIfNoSpace  bool     `yaml:"paused_if_no_space"`
+	RandomTargetDirs bool     `yaml:"random_target_dirs"`
 }
 
 func (c *Config) GetFilterByLabel(label string) Filter {
@@ -100,4 +104,6 @@ func (c *Config) GetFilterByLabel(label string) Filter {
 	return Filter{}
 }
 
-func IsFilterEmpty(f Filter) bool { return f == Filter{} }
+func IsFilterEmpty(f Filter) bool {
+	return f.Include == ""
+}

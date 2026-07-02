@@ -4,21 +4,27 @@ import (
 	"encoding/xml"
 	"io"
 	"log"
+	"math/rand/v2"
 	"net/http"
 	"os"
+	"path/filepath"
+	"slices"
 	"strconv"
 	"time"
 
 	"github.com/babilon15/trfeed/internal/addtorrent"
 	"github.com/babilon15/trfeed/internal/config"
+	"github.com/babilon15/trfeed/pkg/diskusage"
 	"github.com/babilon15/trfeed/pkg/feed"
+	"github.com/babilon15/trfeed/pkg/torrent"
 	"github.com/babilon15/trfeed/pkg/utils"
 )
 
 const (
-	configFile   = "config.yaml"
-	remnantsFile = "remnants.yaml"
-	lastidsFile  = "lastids.yaml"
+	configFile    = "config.yaml"
+	remnantsFile  = "remnants.yaml"
+	lastidsFile   = "lastids.yaml"
+	torrentTarget = "trfeed"
 )
 
 func GetFeed(url string, target any) error {
@@ -36,20 +42,16 @@ func GetFeed(url string, target any) error {
 	return xml.Unmarshal(body, target)
 }
 
-func handleTargetDirs(dirs ...string) string {
+func handleTargetDirs(dirs ...[]string) []string {
 	for _, d := range dirs {
-		if d == "" {
-			continue
-		}
-
-		err := os.MkdirAll(d, utils.DMode)
-		if err != nil {
-			log.Println(err)
-		} else {
-			return d
+		if len(d) != 0 {
+			c := utils.FilterEmptyStrings(d)
+			if len(c) != 0 {
+				return c
+			}
 		}
 	}
-	return ""
+	return []string{}
 }
 
 type Scanner struct {
@@ -72,7 +74,7 @@ func (s *Scanner) Init() {
 	}
 
 	if s.Conf.NoSpaceMarginGB == 0 {
-		s.Conf.NoSpaceMarginGB = 50
+		s.Conf.NoSpaceMarginGB = 10
 	}
 }
 
@@ -101,12 +103,13 @@ func (s *Scanner) checkHit(item *feed.Item, feedIndex int, noGlobalFilters bool)
 			log.Println("hit:", strconv.Quote(item.Title), "pub. date:", item.GetPubDate())
 
 			s.Hits = append(s.Hits, Hit{
-				Labels:    utils.FilterEmptyStrings([]string{s.Conf.Feeds[feedIndex].Filters[i].Label, s.Conf.Feeds[feedIndex].Label, "trfeed"}),
-				Title:     item.Title,
-				Resource:  item.Link,
-				TargetDir: handleTargetDirs(s.Conf.Feeds[feedIndex].Filters[i].TargetDir, s.Conf.Feeds[feedIndex].TargetDir, s.Conf.TargetDir),
-				UniqueNum: item.GetUniqueNum(),
-				Paused:    s.Conf.Feeds[feedIndex].Filters[i].Paused,
+				Labels:     utils.FilterEmptyStrings([]string{s.Conf.Feeds[feedIndex].Filters[i].Label, s.Conf.Feeds[feedIndex].Label, "trfeed"}),
+				Title:      item.Title,
+				Resource:   item.Link,
+				TargetDirs: handleTargetDirs(s.Conf.Feeds[feedIndex].Filters[i].TargetDirs, s.Conf.Feeds[feedIndex].TargetDirs, s.Conf.TargetDirs),
+				RelPath:    s.Conf.Feeds[feedIndex].Filters[i].RelPath,
+				UniqueNum:  item.GetUniqueNum(),
+				Paused:     s.Conf.Feeds[feedIndex].Filters[i].Paused,
 			})
 
 			return
@@ -125,12 +128,13 @@ func (s *Scanner) checkHit(item *feed.Item, feedIndex int, noGlobalFilters bool)
 			log.Println("hit:", strconv.Quote(item.Title), "pub. date:", item.GetPubDate())
 
 			s.Hits = append(s.Hits, Hit{
-				Labels:    utils.FilterEmptyStrings([]string{filter.Label, s.Conf.Feeds[feedIndex].Label, "trfeed"}),
-				Title:     item.Title,
-				Resource:  item.Link,
-				TargetDir: handleTargetDirs(filter.TargetDir, s.Conf.Feeds[feedIndex].TargetDir, s.Conf.TargetDir),
-				UniqueNum: item.GetUniqueNum(),
-				Paused:    filter.Paused, // IMPORTANT!
+				Labels:     utils.FilterEmptyStrings([]string{filter.Label, s.Conf.Feeds[feedIndex].Label, "trfeed"}),
+				Title:      item.Title,
+				Resource:   item.Link,
+				TargetDirs: handleTargetDirs(filter.TargetDirs, s.Conf.Feeds[feedIndex].TargetDirs, s.Conf.TargetDirs),
+				RelPath:    filter.RelPath,
+				UniqueNum:  item.GetUniqueNum(),
+				Paused:     filter.Paused, // IMPORTANT!
 			})
 
 			return
@@ -148,12 +152,13 @@ func (s *Scanner) checkHit(item *feed.Item, feedIndex int, noGlobalFilters bool)
 				log.Println("hit:", strconv.Quote(item.Title), "pub. date:", item.GetPubDate())
 
 				s.Hits = append(s.Hits, Hit{
-					Labels:    utils.FilterEmptyStrings([]string{s.Conf.Filters[i].Label, s.Conf.Feeds[feedIndex].Label, "trfeed"}),
-					Title:     item.Title,
-					Resource:  item.Link,
-					TargetDir: handleTargetDirs(s.Conf.Filters[i].TargetDir, s.Conf.Feeds[feedIndex].TargetDir, s.Conf.TargetDir),
-					UniqueNum: item.GetUniqueNum(),
-					Paused:    s.Conf.Filters[i].Paused,
+					Labels:     utils.FilterEmptyStrings([]string{s.Conf.Filters[i].Label, s.Conf.Feeds[feedIndex].Label, "trfeed"}),
+					Title:      item.Title,
+					Resource:   item.Link,
+					TargetDirs: handleTargetDirs(s.Conf.Filters[i].TargetDirs, s.Conf.Feeds[feedIndex].TargetDirs, s.Conf.TargetDirs),
+					RelPath:    s.Conf.Filters[i].RelPath,
+					UniqueNum:  item.GetUniqueNum(),
+					Paused:     s.Conf.Filters[i].Paused,
 				})
 
 				return
@@ -166,12 +171,13 @@ func (s *Scanner) checkHit(item *feed.Item, feedIndex int, noGlobalFilters bool)
 		log.Println("hit:", strconv.Quote(item.Title), "pub. date:", item.GetPubDate())
 
 		s.Hits = append(s.Hits, Hit{
-			Labels:    utils.FilterEmptyStrings([]string{s.Conf.Feeds[feedIndex].Label, "trfeed"}),
-			Title:     item.Title,
-			Resource:  item.Link,
-			TargetDir: handleTargetDirs(s.Conf.Feeds[feedIndex].TargetDir, s.Conf.TargetDir),
-			UniqueNum: item.GetUniqueNum(),
-			Paused:    s.Conf.Feeds[feedIndex].Paused,
+			Labels:     utils.FilterEmptyStrings([]string{s.Conf.Feeds[feedIndex].Label, "trfeed"}),
+			Title:      item.Title,
+			Resource:   item.Link,
+			TargetDirs: handleTargetDirs(s.Conf.Feeds[feedIndex].TargetDirs, s.Conf.TargetDirs),
+			RelPath:    s.Conf.Feeds[feedIndex].RelPath,
+			UniqueNum:  item.GetUniqueNum(),
+			Paused:     s.Conf.Feeds[feedIndex].Paused,
 		})
 
 		return
@@ -232,19 +238,59 @@ func (s *Scanner) AddHits() {
 	hitsLen := len(s.Hits)
 
 	for i := hitsLen - 1; i >= 0; i-- {
-		if s.Hits[i].TargetDir != "" {
-			if s.Conf.PausedIfNoSpace && !utils.CheckFreeSpace(s.Hits[i].TargetDir, s.Conf.NoSpaceMarginGB*1073741824) {
-				s.Hits[i].Paused = true
+		if torrent.IsMagnetLink(s.Hits[i].Resource) {
+			log.Println("magnet links are not currently supported")
+			s.Hits.Remove(i)
+			continue
+		}
+
+		dlPath, dlErr := DownloadTorrentFile(s.Hits[i].Resource, filepath.Join(os.TempDir(), torrentTarget))
+		if dlErr != nil {
+			log.Println(dlErr)
+		}
+
+		torrentSize := torrent.GetTorrentSize(dlPath)
+		if torrentSize == 0 {
+			log.Println("torrent total size could not be determined:", strconv.Quote(s.Hits[i].Title))
+			continue
+		}
+
+		targetDirs := slices.Clone(s.Hits[i].TargetDirs)
+
+		if s.Conf.RandomTargetDirs {
+			rand.Shuffle(len(targetDirs), func(i, j int) {
+				targetDirs[i], targetDirs[j] = targetDirs[j], targetDirs[i]
+			})
+		}
+
+		tdRes := ""
+		for _, d := range targetDirs {
+			usage := diskusage.GetDiskUsage(d)
+
+			if usage.Available()-torrentSize-(s.Conf.NoSpaceMarginGB*1073741824) >= 0 {
+				tdRes = d
+				break
+			}
+		}
+
+		paused := s.Hits[i].Paused
+		if tdRes == "" {
+			if len(targetDirs) != 0 {
+				tdRes = targetDirs[0]
+			}
+
+			if s.Conf.PausedIfNoSpace {
+				paused = true
 			}
 		}
 
 		err := addtorrent.AddTorrentWithRemote(
 			s.Conf.Host,
 			s.Conf.Auth,
-			s.Hits[i].Resource,
-			s.Hits[i].TargetDir,
+			dlPath,
+			filepath.Join(tdRes, s.Hits[i].RelPath),
 			s.Hits[i].Labels,
-			s.Hits[i].Paused,
+			paused,
 		)
 
 		if err == nil {
