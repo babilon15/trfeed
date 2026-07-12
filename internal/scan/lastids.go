@@ -1,12 +1,12 @@
 package scan
 
 type Pair struct {
-	Url           string `yaml:"url"`
-	LastUniqueNum uint64 `yaml:"last_unique_num"`
+	Url           string `yaml:"url" json:"url"`
+	LastUniqueNum uint64 `yaml:"last_unique_num" json:"last_unique_num"`
 }
 
 type LastIDs struct {
-	Pairs []Pair `yaml:"last_ids"`
+	Pairs []Pair `yaml:"last_ids" json:"last_ids"`
 }
 
 func (l *LastIDs) GetLastIDByUrl(url string) uint64 {

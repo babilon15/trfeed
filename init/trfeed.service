@@ -7,6 +7,7 @@ Type=simple
 User=trfeed
 StateDirectory=trfeed
 StateDirectoryMode=0770
+#SupplementaryGroups=media
 WorkingDirectory=/var/lib/trfeed
 ExecStart=/usr/local/bin/trfeed
 UMask=0002

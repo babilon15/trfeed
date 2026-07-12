@@ -16,10 +16,20 @@ func main() {
 	s := &scan.Scanner{}
 	s.Init()
 
+	counter := 0
+
 	for {
 		s.Run()
 		s.AddHits()
 		s.Save()
 		time.Sleep(time.Minute)
+		if s.Conf.ReloadConfigFile {
+			if counter == 5 {
+				s.GetConfigFile()
+				counter = 0
+			} else {
+				counter++
+			}
+		}
 	}
 }

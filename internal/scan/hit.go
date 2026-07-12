@@ -1,13 +1,13 @@
 package scan
 
 type Hit struct {
-	Labels     []string `yaml:"labels"`
-	TargetDirs []string `yaml:"target_dirs"`
-	RelPath    string   `yaml:"rel_path"`
-	Title      string   `yaml:"title"`
-	Resource   string   `yaml:"resource"`
-	UniqueNum  uint64   `yaml:"unique_num"`
-	Paused     bool     `yaml:"paused"`
+	Labels     []string `yaml:"labels" json:"labels"`
+	TargetDirs []string `yaml:"target_dirs" json:"target_dirs"`
+	RelPath    string   `yaml:"rel_path" json:"rel_path"`
+	Title      string   `yaml:"title" json:"title"`
+	Resource   string   `yaml:"resource" json:"resource"`
+	UniqueNum  uint64   `yaml:"unique_num" json:"unique_num"`
+	Pause      bool     `yaml:"pause" json:"pause"`
 }
 
 type Hits []Hit

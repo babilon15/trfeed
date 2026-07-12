@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func AddTorrentWithRemote(host, auth, resource, targetDir string, labels []string, paused bool) error {
+func AddTorrentWithRemote(host, auth, resource, targetDir string, labels []string, pause bool) error {
 	args := []string{host}
 
 	if len(auth) >= 3 {
@@ -22,7 +22,7 @@ func AddTorrentWithRemote(host, auth, resource, targetDir string, labels []strin
 		args = append(args, "--labels", strings.Join(labels, ","))
 	}
 
-	if paused {
+	if pause {
 		args = append(args, "--stop")
 	} else {
 		args = append(args, "--start")

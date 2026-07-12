@@ -22,3 +22,22 @@ func IsMagnetLink(m string) bool {
 	_, err := metainfo.ParseMagnetUri(m)
 	return err == nil
 }
+
+type TInfo struct {
+	Name     string
+	FilesNum int
+	Size     int64
+}
+
+func GetTInfo(path string) (TInfo, error) {
+	info, infoErr := GetInfo(path)
+	if infoErr != nil {
+		return TInfo{}, infoErr
+	}
+
+	return TInfo{
+		Name:     info.Name,
+		FilesNum: len(info.UpvertedFiles()),
+		Size:     info.TotalLength(),
+	}, nil
+}

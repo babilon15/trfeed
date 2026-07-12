@@ -21,10 +21,11 @@ import (
 )
 
 const (
-	configFile    = "config.yaml"
-	remnantsFile  = "remnants.yaml"
-	lastidsFile   = "lastids.yaml"
-	torrentTarget = "trfeed"
+	configFile       = "config.yaml"
+	configFileJSON   = "config.json"
+	remnantsFile     = "remnants.json"
+	lastidsFile      = "lastids.json"
+	torrentTargetDir = "trfeed"
 )
 
 func GetFeed(url string, target any) error {
@@ -55,35 +56,48 @@ func handleTargetDirs(dirs ...[]string) []string {
 }
 
 type Scanner struct {
-	Conf    config.Config
-	LastIDs LastIDs
-	Hits    Hits
+	Conf          config.Config
+	LastIDs       LastIDs
+	Hits          Hits
+	torrentTarget string
 }
 
-func (s *Scanner) Init() {
+func (s *Scanner) GetConfigFile() {
 	if err := utils.GetYAMLFromFile(configFile, &s.Conf); err != nil {
 		log.Println(err)
 	}
+}
 
-	if err := utils.GetYAMLFromFile(remnantsFile, &s.Hits); err != nil {
+func (s *Scanner) Init() {
+	s.GetConfigFile()
+
+	if err := utils.GetJSONFromFile(remnantsFile, &s.Hits); err != nil {
 		log.Println(err)
 	}
 
-	if err := utils.GetYAMLFromFile(lastidsFile, &s.LastIDs); err != nil {
+	if err := utils.GetJSONFromFile(lastidsFile, &s.LastIDs); err != nil {
 		log.Println(err)
 	}
 
 	if s.Conf.NoSpaceMarginGB == 0 {
 		s.Conf.NoSpaceMarginGB = 10
 	}
+
+	if s.torrentTarget == "" {
+		s.torrentTarget = filepath.Join(os.TempDir(), torrentTargetDir)
+		err := os.MkdirAll(s.torrentTarget, utils.DMode)
+		if err != nil {
+			log.Println(err)
+		}
+	}
 }
 
 func (s *Scanner) Save() {
-	if err := utils.PutYAMLToFile(remnantsFile, &s.Hits); err != nil {
+	if err := utils.PutJSONToFile(remnantsFile, &s.Hits); err != nil {
 		log.Println(err)
 	}
 
-	if err := utils.PutYAMLToFile(lastidsFile, &s.LastIDs); err != nil {
+	if err := utils.PutJSONToFile(lastidsFile, &s.LastIDs); err != nil {
 		log.Println(err)
 	}
 }
@@ -109,7 +123,7 @@ func (s *Scanner) checkHit(item *feed.Item, feedIndex int, noGlobalFilters bool)
 				TargetDirs: handleTargetDirs(s.Conf.Feeds[feedIndex].Filters[i].TargetDirs, s.Conf.Feeds[feedIndex].TargetDirs, s.Conf.TargetDirs),
 				RelPath:    s.Conf.Feeds[feedIndex].Filters[i].RelPath,
 				UniqueNum:  item.GetUniqueNum(),
-				Paused:     s.Conf.Feeds[feedIndex].Filters[i].Paused,
+				Pause:      s.Conf.Feeds[feedIndex].Filters[i].Pause,
 			})
 
 			return
@@ -134,7 +148,7 @@ func (s *Scanner) checkHit(item *feed.Item, feedIndex int, noGlobalFilters bool)
 				TargetDirs: handleTargetDirs(filter.TargetDirs, s.Conf.Feeds[feedIndex].TargetDirs, s.Conf.TargetDirs),
 				RelPath:    filter.RelPath,
 				UniqueNum:  item.GetUniqueNum(),
-				Paused:     filter.Paused, // IMPORTANT!
+				Pause:      filter.Pause, // IMPORTANT!
 			})
 
 			return
@@ -158,7 +172,7 @@ func (s *Scanner) checkHit(item *feed.Item, feedIndex int, noGlobalFilters bool)
 					TargetDirs: handleTargetDirs(s.Conf.Filters[i].TargetDirs, s.Conf.Feeds[feedIndex].TargetDirs, s.Conf.TargetDirs),
 					RelPath:    s.Conf.Filters[i].RelPath,
 					UniqueNum:  item.GetUniqueNum(),
-					Paused:     s.Conf.Filters[i].Paused,
+					Pause:      s.Conf.Filters[i].Pause,
 				})
 
 				return
@@ -177,7 +191,7 @@ func (s *Scanner) checkHit(item *feed.Item, feedIndex int, noGlobalFilters bool)
 			TargetDirs: handleTargetDirs(s.Conf.Feeds[feedIndex].TargetDirs, s.Conf.TargetDirs),
 			RelPath:    s.Conf.Feeds[feedIndex].RelPath,
 			UniqueNum:  item.GetUniqueNum(),
-			Paused:     s.Conf.Feeds[feedIndex].Paused,
+			Pause:      s.Conf.Feeds[feedIndex].Pause,
 		})
 
 		return
@@ -244,13 +258,17 @@ func (s *Scanner) AddHits() {
 			continue
 		}
 
-		dlPath, dlErr := DownloadTorrentFile(s.Hits[i].Resource, filepath.Join(os.TempDir(), torrentTarget))
+		dlPath, dlErr := DownloadTorrentFile(s.Hits[i].Resource, s.torrentTarget)
 		if dlErr != nil {
 			log.Println(dlErr)
 		}
 
-		torrentSize := torrent.GetTorrentSize(dlPath)
-		if torrentSize == 0 {
+		torrentInfo, torrentInfoErr := torrent.GetTInfo(dlPath)
+		if torrentInfoErr != nil {
+			log.Println(torrentInfoErr)
+		}
+
+		if torrentInfo.Size == 0 {
 			log.Println("torrent total size could not be determined:", strconv.Quote(s.Hits[i].Title))
 			continue
 		}
@@ -265,22 +283,42 @@ func (s *Scanner) AddHits() {
 
 		tdRes := ""
 		for _, d := range targetDirs {
-			usage := diskusage.GetDiskUsage(d)
+			if !filepath.IsAbs(d) {
+				log.Println("this is not an absolute path:", strconv.Quote(d))
+				continue
+			}
 
-			if usage.Available()-torrentSize-(s.Conf.NoSpaceMarginGB*1073741824) >= 0 {
+			// usage := diskusage.GetDiskUsage(d)
+			// -> It does not work properly if the path does not exist.
+
+			usage := diskusage.GetDiskUsageIndefPath(d)
+
+			if usage.Available() >= torrentInfo.Size+(s.Conf.NoSpaceMarginGB*1073741824) {
 				tdRes = d
 				break
 			}
 		}
 
-		paused := s.Hits[i].Paused
+		pause := s.Hits[i].Pause
 		if tdRes == "" {
 			if len(targetDirs) != 0 {
 				tdRes = targetDirs[0]
 			}
 
-			if s.Conf.PausedIfNoSpace {
-				paused = true
+			if s.Conf.PauseIfNoSpace {
+				pause = true
+			}
+		}
+
+		if s.Conf.MaxFilesBeforePause > 0 {
+			if torrentInfo.FilesNum > s.Conf.MaxFilesBeforePause {
+				pause = true
+			}
+		}
+
+		if s.Conf.MaxSizeGBBeforePause > 0 {
+			if torrentInfo.Size > (s.Conf.MaxSizeGBBeforePause * 1073741824) {
+				pause = true
 			}
 		}
 
@@ -290,7 +328,7 @@ func (s *Scanner) AddHits() {
 			dlPath,
 			filepath.Join(tdRes, s.Hits[i].RelPath),
 			s.Hits[i].Labels,
-			paused,
+			pause,
 		)
 
 		if err == nil {

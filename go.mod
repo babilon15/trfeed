@@ -1,11 +1,11 @@
 module github.com/babilon15/trfeed
 
-go 1.24.1
+go 1.25.0
 
 require (
 	github.com/anacrolix/torrent v1.61.0
-	github.com/goccy/go-yaml v1.18.0
-	golang.org/x/text v0.31.0
+	github.com/goccy/go-yaml v1.19.2
+	golang.org/x/text v0.39.0
 )
 
 require (
