@@ -60,15 +60,26 @@ type Scanner struct {
 	LastIDs       LastIDs
 	Hits          Hits
 	torrentTarget string
+	useJSON       bool
 }
 
 func (s *Scanner) GetConfigFile() {
+	if s.useJSON {
+		if err := utils.GetJSONFromFile(configFileJSON, &s.Conf); err != nil {
+			log.Println(err)
+		}
+
+		return
+	}
+
 	if err := utils.GetYAMLFromFile(configFile, &s.Conf); err != nil {
 		log.Println(err)
 	}
 }
 
-func (s *Scanner) Init() {
+func (s *Scanner) Init(useJSON bool) {
+	s.useJSON = useJSON
+
 	s.GetConfigFile()
 
 	if err := utils.GetJSONFromFile(remnantsFile, &s.Hits); err != nil {
