@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func AddTorrentWithRemote(host, auth, resource, targetDir string, labels []string, pause bool) error {
+func AddTorrentWithRemote(binPath, host, auth, resource, targetDir string, labels []string, pause bool) error {
 	args := []string{host}
 
 	if len(auth) >= 3 {
@@ -28,7 +28,11 @@ func AddTorrentWithRemote(host, auth, resource, targetDir string, labels []strin
 		args = append(args, "--start")
 	}
 
-	cmd := exec.Command("transmission-remote", args...)
+	if binPath == "" {
+		binPath = "transmission-remote"
+	}
+
+	cmd := exec.Command(binPath, args...)
 
 	_, err := cmd.CombinedOutput()
 

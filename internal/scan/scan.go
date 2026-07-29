@@ -334,6 +334,7 @@ func (s *Scanner) AddHits() {
 		}
 
 		err := addtorrent.AddTorrentWithRemote(
+			s.Conf.TrRemotePath,
 			s.Conf.Host,
 			s.Conf.Auth,
 			dlPath,
