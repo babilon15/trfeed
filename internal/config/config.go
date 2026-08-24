@@ -83,11 +83,10 @@ type Config struct {
 	Auth                 string   `yaml:"auth" json:"auth"`
 	TrRemotePath         string   `yaml:"tr_remote_path" json:"tr_remote_path"`
 	NoSpaceMarginGB      int64    `yaml:"no_space_margin_gb" json:"no_space_margin_gb"`
-	PauseIfNoSpace       bool     `yaml:"pause_if_no_space" json:"pause_if_no_space"`
-	MaxFilesBeforePause  int      `yaml:"max_files_before_pause" json:"max_files_before_pause"`     // disable -> less than 1
 	MaxSizeGBBeforePause int64    `yaml:"max_size_gb_before_pause" json:"max_size_gb_before_pause"` // disable -> less than 1
+	MaxFilesBeforePause  int      `yaml:"max_files_before_pause" json:"max_files_before_pause"`     // disable -> less than 1
 	RandomTargetDirs     bool     `yaml:"random_target_dirs" json:"random_target_dirs"`
-	ReloadConfigFile     bool     `yaml:"reload_config_file" json:"reload_config_file"`
+	PauseIfNoSpace       bool     `yaml:"pause_if_no_space" json:"pause_if_no_space"`
 }
 
 func (c *Config) GetFilterByLabel(label string) Filter {
@@ -106,6 +105,10 @@ func (c *Config) GetFilterByLabel(label string) Filter {
 	}
 
 	return Filter{}
+}
+
+func (c *Config) Validate() error {
+	return nil
 }
 
 func IsFilterEmpty(f Filter) bool {

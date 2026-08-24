@@ -18,7 +18,7 @@ func GetYAMLFromFile(path string, target any) error {
 func PutYAMLToFile(path string, obj any) error {
 	b, bErr := yaml.MarshalWithOptions(
 		obj,
-		yaml.Indent(4),
+		yaml.Indent(2),
 		yaml.IndentSequence(true),
 	)
 

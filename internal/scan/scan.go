@@ -22,7 +22,6 @@ import (
 
 const (
 	configFile       = "config.yaml"
-	configFileJSON   = "config.json"
 	remnantsFile     = "remnants.json"
 	lastidsFile      = "lastids.json"
 	torrentTargetDir = "trfeed"
@@ -56,42 +55,52 @@ func handleTargetDirs(dirs ...[]string) []string {
 }
 
 type Scanner struct {
-	Conf          config.Config
-	LastIDs       LastIDs
-	Hits          Hits
-	torrentTarget string
-	useJSON       bool
+	Conf              config.Config
+	LastIDs           LastIDs
+	Hits              Hits
+	torrentTarget     string
+	configLastModTime time.Time
 }
 
 func (s *Scanner) GetConfigFile() {
-	if s.useJSON {
-		if err := utils.GetJSONFromFile(configFileJSON, &s.Conf); err != nil {
-			log.Println(err)
-		}
-
-		return
+	cInfo, cInfoErr := os.Stat(configFile)
+	if cInfoErr != nil {
+		log.Println(cInfoErr)
 	}
 
-	if err := utils.GetYAMLFromFile(configFile, &s.Conf); err != nil {
-		log.Println(err)
+	cModTime := cInfo.ModTime()
+
+	if s.configLastModTime.IsZero() || cModTime.After(s.configLastModTime) {
+		var newConf config.Config
+
+		yamlErr := utils.GetYAMLFromFile(configFile, &newConf)
+		validateErr := newConf.Validate()
+
+		if yamlErr == nil && validateErr == nil {
+			s.Conf = newConf
+			s.configLastModTime = cModTime
+			return
+		} else {
+			log.Println("something went wrong with the configuration file...")
+
+			if yamlErr != nil {
+				log.Println(yamlErr)
+			}
+
+			if validateErr != nil {
+				log.Println(validateErr)
+			}
+		}
 	}
 }
 
-func (s *Scanner) Init(useJSON bool) {
-	s.useJSON = useJSON
-
-	s.GetConfigFile()
-
+func (s *Scanner) Init() {
 	if err := utils.GetJSONFromFile(remnantsFile, &s.Hits); err != nil {
 		log.Println(err)
 	}
 
 	if err := utils.GetJSONFromFile(lastidsFile, &s.LastIDs); err != nil {
 		log.Println(err)
-	}
-
-	if s.Conf.NoSpaceMarginGB == 0 {
-		s.Conf.NoSpaceMarginGB = 10
 	}
 
 	if s.torrentTarget == "" {
@@ -254,8 +263,6 @@ func (s *Scanner) Run() {
 		}
 
 		s.LastIDs.SetLastIDByUrl(s.Conf.Feeds[i].Url, currentFirstUniqueNum)
-
-		time.Sleep(time.Millisecond * 250)
 	}
 }
 
@@ -345,13 +352,14 @@ func (s *Scanner) AddHits() {
 
 		if err == nil {
 			log.Println("torrent added successfully:", strconv.Quote(s.Hits[i].Title))
+
+			if err := os.Remove(dlPath); err != nil {
+				log.Println(err)
+			}
+
 			s.Hits.Remove(i)
 		} else {
 			log.Println("torrent could not be added:", strconv.Quote(s.Hits[i].Title))
-		}
-
-		if hitsLen >= 5 {
-			time.Sleep(time.Millisecond * 500)
 		}
 	}
 }

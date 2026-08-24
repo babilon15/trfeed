@@ -9,12 +9,8 @@ import (
 	"github.com/babilon15/trfeed/pkg/utils"
 )
 
-const (
-	counts = 3
-)
-
 func main() {
-	useJSON := flag.Bool("json", false, "The configuration file will be in JSON format instead of YAML.")
+	useWebr := flag.Bool("web", false, "Enable web-based status reports.")
 	flag.Parse()
 
 	if utils.IsSuperuserNow() {
@@ -22,22 +18,13 @@ func main() {
 	}
 
 	s := &scan.Scanner{}
-	s.Init(*useJSON)
-
-	counter := 0
+	s.Init()
 
 	for {
+		s.GetConfigFile()
 		s.Run()
 		s.AddHits()
 		s.Save()
 		time.Sleep(time.Minute)
-		if s.Conf.ReloadConfigFile {
-			if counter == counts {
-				s.GetConfigFile()
-				counter = 0
-			} else {
-				counter++
-			}
-		}
 	}
 }
