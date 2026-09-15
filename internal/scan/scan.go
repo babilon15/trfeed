@@ -24,7 +24,7 @@ const (
 	configFile       = "config.yaml"
 	remnantsFile     = "remnants.json"
 	lastidsFile      = "lastids.json"
-	torrentTargetDir = "trfeed"
+	torrentTargetDir = "torrent"
 )
 
 func GetFeed(url string, target any) error {
@@ -66,6 +66,7 @@ func (s *Scanner) GetConfigFile() {
 	cInfo, cInfoErr := os.Stat(configFile)
 	if cInfoErr != nil {
 		log.Println(cInfoErr)
+		return
 	}
 
 	cModTime := cInfo.ModTime()
@@ -104,7 +105,7 @@ func (s *Scanner) Init() {
 	}
 
 	if s.torrentTarget == "" {
-		s.torrentTarget = filepath.Join(os.TempDir(), torrentTargetDir)
+		s.torrentTarget = torrentTargetDir
 		err := os.MkdirAll(s.torrentTarget, utils.DMode)
 		if err != nil {
 			log.Println(err)
@@ -352,11 +353,6 @@ func (s *Scanner) AddHits() {
 
 		if err == nil {
 			log.Println("torrent added successfully:", strconv.Quote(s.Hits[i].Title))
-
-			if err := os.Remove(dlPath); err != nil {
-				log.Println(err)
-			}
-
 			s.Hits.Remove(i)
 		} else {
 			log.Println("torrent could not be added:", strconv.Quote(s.Hits[i].Title))

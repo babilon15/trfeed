@@ -3,4 +3,5 @@ cmd/trfeed/config.yaml
 cmd/trfeed/lastids.json
 cmd/trfeed/remnants.json
 cmd/trfeed/remnants.yaml
+cmd/trfeed/torrent
 cmd/trfeed/trfeed

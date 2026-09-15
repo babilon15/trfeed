@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"time"
 
@@ -10,9 +9,6 @@ import (
 )
 
 func main() {
-	useWebr := flag.Bool("web", false, "Enable web-based status reports.")
-	flag.Parse()
-
 	if utils.IsSuperuserNow() {
 		log.Fatalln("do not run this program with superuser privileges")
 	}
