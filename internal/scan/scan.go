@@ -80,6 +80,7 @@ func (s *Scanner) GetConfigFile() {
 		if yamlErr == nil && validateErr == nil {
 			s.Conf = newConf
 			s.configLastModTime = cModTime
+			log.Println("the configuration file has changed and been reloaded")
 			return
 		} else {
 			log.Println("something went wrong with the configuration file...")
@@ -231,6 +232,10 @@ func (s *Scanner) Run() {
 			continue
 		}
 
+		if s.Conf.Feeds[i].Disabled {
+			continue
+		}
+
 		var currentFeed *feed.Feed
 
 		if err := GetFeed(s.Conf.Feeds[i].Url, &currentFeed); err != nil {
@@ -319,6 +324,7 @@ func (s *Scanner) AddHits() {
 		}
 
 		pause := s.Hits[i].Pause
+
 		if tdRes == "" {
 			if len(targetDirs) != 0 {
 				tdRes = targetDirs[0]

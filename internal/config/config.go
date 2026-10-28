@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -72,6 +73,7 @@ type Feed struct {
 	GetAll           bool     `yaml:"get_all" json:"get_all"`
 	Pause            bool     `yaml:"pause" json:"pause"`
 	NoGlobalFilters  bool     `yaml:"no_global_filters" json:"no_global_filters"`
+	Disabled         bool     `yaml:"disabled" json:"disabled"`
 }
 
 type Config struct {
@@ -108,7 +110,9 @@ func (c *Config) GetFilterByLabel(label string) Filter {
 }
 
 func (c *Config) Validate() error {
-	return nil
+	if !utils.IsValidURL(c.Host) {
+		fmt.Errorf("the transmission host value in the configuration file is not a valid URL")
+	}
 }
 
 func IsFilterEmpty(f Filter) bool {
